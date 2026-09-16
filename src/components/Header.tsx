@@ -2,14 +2,15 @@
 
 import Image from "next/image";
 import { useCaisse } from "@/lib/store";
-import { demanderCode } from "@/lib/pin";
+import { useDemanderCode } from "@/lib/pinGate";
 
 export default function Header({ onOuvrirSoiree }: { onOuvrirSoiree: () => void }) {
   const soiree = useCaisse((e) => e.soireeActive());
   const cloturerSoiree = useCaisse((e) => e.cloturerSoiree);
+  const demanderCode = useDemanderCode();
 
-  const cloturer = () => {
-    if (!demanderCode("clôturer la soirée")) return;
+  const cloturer = async () => {
+    if (!(await demanderCode("clôturer la soirée"))) return;
     if (confirm(`Clôturer « ${soiree?.nom} » ? Le panier en cours sera perdu s'il n'est pas encaissé.`)) {
       cloturerSoiree();
     }

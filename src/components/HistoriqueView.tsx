@@ -5,7 +5,7 @@ import { useCaisse } from "@/lib/store";
 import { formaterEuros, formaterDate, formaterHeure } from "@/lib/format";
 import { telechargerCsvSoiree } from "@/lib/export";
 import { parserCsvSoiree } from "@/lib/import";
-import { demanderCode } from "@/lib/pin";
+import { useDemanderCode } from "@/lib/pinGate";
 
 export default function HistoriqueView() {
   const soirees = useCaisse((e) => e.soirees);
@@ -13,12 +13,13 @@ export default function HistoriqueView() {
   const produits = useCaisse((e) => e.produits);
   const supprimerVente = useCaisse((e) => e.supprimerVente);
   const importerVentes = useCaisse((e) => e.importerVentes);
+  const demanderCode = useDemanderCode();
   const [ouverte, setOuverte] = useState<string | null>(null);
   const [messageImport, setMessageImport] = useState<{ texte: string; erreur: boolean } | null>(null);
   const inputFichierRef = useRef<HTMLInputElement>(null);
 
-  const supprimer = (venteId: string, montant: number) => {
-    if (!demanderCode("supprimer une vente")) return;
+  const supprimer = async (venteId: string, montant: number) => {
+    if (!(await demanderCode("supprimer une vente"))) return;
     if (confirm(`Supprimer cette vente de ${formaterEuros(montant)} ? Cette action est irréversible.`)) {
       supprimerVente(venteId);
     }

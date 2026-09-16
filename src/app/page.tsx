@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useSupabaseSync } from "@/lib/useSupabaseSync";
-import { demanderCode } from "@/lib/pin";
+import { PinGateProvider, useDemanderCode } from "@/lib/pinGate";
 import Header from "@/components/Header";
 import Nav, { Onglet } from "@/components/Nav";
 import VenteView from "@/components/VenteView";
@@ -11,7 +11,16 @@ import HistoriqueView from "@/components/HistoriqueView";
 import OuvrirSoireeModal from "@/components/OuvrirSoireeModal";
 
 export default function Page() {
+  return (
+    <PinGateProvider>
+      <Contenu />
+    </PinGateProvider>
+  );
+}
+
+function Contenu() {
   const { pret, erreur } = useSupabaseSync();
+  const demanderCode = useDemanderCode();
   const [onglet, setOnglet] = useState<Onglet>("vente");
   const [modalOuverte, setModalOuverte] = useState(false);
 
@@ -28,8 +37,8 @@ export default function Page() {
     );
   }
 
-  const changerOnglet = (o: Onglet) => {
-    if (o === "carte" && onglet !== "carte" && !demanderCode("accéder à la carte")) return;
+  const changerOnglet = async (o: Onglet) => {
+    if (o === "carte" && onglet !== "carte" && !(await demanderCode("accéder à la carte"))) return;
     setOnglet(o);
   };
 
