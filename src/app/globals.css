@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #f6f4ef;
+  --surface: #fffefb;
+  --surface-2: #efece3;
+  --ink: #1c1a17;
+  --ink-soft: #5a564c;
+  --ink-faint: #8a8578;
+  --line: #ddd8c9;
+  --danger: #8a3324;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #151412;
+    --surface: #1e1c19;
+    --surface-2: #26241f;
+    --ink: #f1eee6;
+    --ink-soft: #b8b3a6;
+    --ink-faint: #7d7869;
+    --line: #38352d;
+    --danger: #d97a63;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-line: var(--line);
+  --color-danger: var(--danger);
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-mono: var(--font-mono);
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display), Georgia, serif;
+  text-wrap: balance;
+}
+
+button {
+  font-family: inherit;
+  touch-action: manipulation;
+}
+
+/* keep the interface calm on a modest tablet: no smooth-scroll physics, no stray tap highlight */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
