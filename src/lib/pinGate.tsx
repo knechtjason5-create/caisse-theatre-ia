@@ -5,7 +5,7 @@ import { createContext, useCallback, useContext, useState, ReactNode } from "rea
 const CODE = "1234";
 const CLE_SESSION = "caisse-code-ok";
 
-function dejaDeverrouille(): boolean {
+export function estDeverrouille(): boolean {
   if (typeof window === "undefined") return false;
   try {
     return sessionStorage.getItem(CLE_SESSION) === "1";
@@ -37,7 +37,7 @@ export function PinGateProvider({ children }: { children: ReactNode }) {
   const [erreur, setErreur] = useState(false);
 
   const demanderCode = useCallback((action: string): Promise<boolean> => {
-    if (dejaDeverrouille()) return Promise.resolve(true);
+    if (estDeverrouille()) return Promise.resolve(true);
     return new Promise<boolean>((resoudre) => {
       setSaisie("");
       setErreur(false);
