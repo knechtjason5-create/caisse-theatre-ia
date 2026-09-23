@@ -1,4 +1,5 @@
-import { LigneVente, Paiement, ModePaiement, Produit } from "./types";
+import { LigneVente, Paiement, Produit } from "./types";
+import { COLONNE_AUTRES_PRODUITS } from "./export";
 
 const MOIS_FR: Record<string, number> = {
   janvier: 0,
@@ -17,6 +18,7 @@ const MOIS_FR: Record<string, number> = {
 
 export type VenteImportee = {
   horodatage: number;
+  modifieeLe: number | null;
   lignes: LigneVente[];
   montantTotal: number;
   paiements: Paiement[];
@@ -52,30 +54,36 @@ function parserDateTitre(titre: string): { nom: string; jourBase: Date | null } 
   return { nom: nom.trim(), jourBase: new Date(Number(annee), mois, Number(jour)) };
 }
 
-function parserProduits(champ: string, produitsActuels: Produit[]): LigneVente[] {
+function parserHeure(heure: string, jourBase: Date | null): number | null {
+  if (!heure.trim()) return null;
+  const [h, min] = heure.split(":").map(Number);
+  const base = jourBase ? new Date(jourBase) : new Date();
+  base.setHours(h || 0, min || 0, 0, 0);
+  return base.getTime();
+}
+
+function parserAutresProduits(champ: string): LigneVente[] {
   if (!champ.trim()) return [];
   return champ.split(", ").map((item) => {
     const m = item.trim().match(/^(.+)\s+x(\d+)$/);
     const nom = m ? m[1].trim() : item.trim();
     const quantite = m ? Number(m[2]) : 1;
-    const produit = produitsActuels.find((p) => p.nom === nom);
     return {
-      produitId: produit?.id ?? `inconnu-${nom}`,
+      produitId: `inconnu-${nom}`,
       nom,
       quantite,
-      prixApplique: produit?.prix ?? 0,
+      prixApplique: 0,
     };
   });
 }
 
-function parserPaiements(champ: string): Paiement[] {
-  if (!champ.trim()) return [];
-  return champ.split(" + ").map((part, i) => {
-    const m = part.trim().match(/^(.+):\s*([\d,.-]+)\s*€?$/);
-    const mode = (m ? m[1].trim() : part.trim()) as ModePaiement;
-    const montant = m ? parserMontant(m[2]) : 0;
-    return { id: `import-${Date.now()}-${i}`, mode, montant };
-  });
+function parserPaiements(especesChamp: string, cbChamp: string): Paiement[] {
+  const paiements: Paiement[] = [];
+  const especes = parserMontant(especesChamp);
+  const cb = parserMontant(cbChamp);
+  if (especes > 0) paiements.push({ id: `import-${Date.now()}-0`, mode: "Espèces", montant: especes });
+  if (cb > 0) paiements.push({ id: `import-${Date.now()}-1`, mode: "CB", montant: cb });
+  return paiements;
 }
 
 export function parserCsvSoiree(texte: string, produitsActuels: Produit[]): ResultatImport {
@@ -90,27 +98,59 @@ export function parserCsvSoiree(texte: string, produitsActuels: Produit[]): Resu
   const { nom, jourBase } = parserDateTitre(titreBrut);
 
   const entete = parserLigneCsv(enteteLigne);
-  if (entete[0] !== "Heure" || entete[1] !== "Produits") {
+  if (entete[0] !== "Heure commande") {
     return {
       ok: false,
       erreur: "Ce fichier ne ressemble pas à un export de ventes de cette application.",
     };
   }
 
+  const indexAutres = entete.indexOf(COLONNE_AUTRES_PRODUITS);
+  if (indexAutres === -1) {
+    return {
+      ok: false,
+      erreur: "Ce fichier ne ressemble pas à un export de ventes de cette application.",
+    };
+  }
+  const colonnesProduits = entete.slice(2, indexAutres).map((nomProduit, i) => ({
+    index: 2 + i,
+    produit: produitsActuels.find((p) => p.nom === nomProduit) ?? null,
+    nom: nomProduit,
+  }));
+  const indexMontant = indexAutres + 1;
+  const indexEspeces = indexAutres + 3;
+  const indexCb = indexAutres + 4;
+
   const ventes: VenteImportee[] = [];
   for (const ligne of reste) {
-    const [heure, produitsChamp, montantChamp, paiementsChamp] = parserLigneCsv(ligne);
-    if (produitsChamp === "TOTAL" || !heure) continue;
+    const champs = parserLigneCsv(ligne);
+    const heureCommande = champs[0];
+    const heureModification = champs[1];
+    const montantChamp = champs[indexMontant];
+    if (!heureCommande || champs[indexAutres] === "TOTAL") continue;
 
-    const [h, min] = heure.split(":").map(Number);
-    const base = jourBase ? new Date(jourBase) : new Date();
-    base.setHours(h || 0, min || 0, 0, 0);
+    const horodatage = parserHeure(heureCommande, jourBase);
+    if (horodatage === null) continue;
+
+    const lignesProduits: LigneVente[] = [];
+    for (const colonne of colonnesProduits) {
+      const quantite = Number(champs[colonne.index]);
+      if (!quantite) continue;
+      lignesProduits.push({
+        produitId: colonne.produit?.id ?? `inconnu-${colonne.nom}`,
+        nom: colonne.produit?.nom ?? colonne.nom,
+        quantite,
+        prixApplique: colonne.produit?.prix ?? 0,
+      });
+    }
+    lignesProduits.push(...parserAutresProduits(champs[indexAutres]));
 
     ventes.push({
-      horodatage: base.getTime(),
-      lignes: parserProduits(produitsChamp, produitsActuels),
+      horodatage,
+      modifieeLe: parserHeure(heureModification ?? "", jourBase),
+      lignes: lignesProduits,
       montantTotal: parserMontant(montantChamp),
-      paiements: parserPaiements(paiementsChamp),
+      paiements: parserPaiements(champs[indexEspeces], champs[indexCb]),
     });
   }
 

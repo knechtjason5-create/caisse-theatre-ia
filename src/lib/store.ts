@@ -38,6 +38,7 @@ type VenteRow = {
   id: string;
   soiree_id: string;
   horodatage: number;
+  modifiee_le: number | null;
   montant_total: number;
   lignes_vente: LigneVenteRow[] | null;
   paiements: PaiementRow[] | null;
@@ -48,6 +49,7 @@ function venteDepuisRow(row: VenteRow): Vente {
     id: row.id,
     soireeId: row.soiree_id,
     horodatage: Number(row.horodatage),
+    modifieeLe: row.modifiee_le === null || row.modifiee_le === undefined ? null : Number(row.modifiee_le),
     montantTotal: Number(row.montant_total),
     lignes: (row.lignes_vente ?? []).map((l) => ({
       produitId: l.produit_id,
@@ -83,6 +85,7 @@ type Etat = {
   // vente
   validerVente: (paiements: Paiement[]) => void;
   supprimerVente: (venteId: string) => void;
+  modifierVente: (venteId: string, lignes: LigneVente[], paiements: Paiement[]) => void;
   importerVentes: (nomSoiree: string, ventes: VenteImportee[]) => { nombreImportees: number; nombreIgnorees: number };
 
   // soirées
@@ -202,6 +205,7 @@ export const useCaisse = create<Etat>()((set, get) => ({
       id: genererId(),
       soireeId: soiree.id,
       horodatage: Date.now(),
+      modifieeLe: null,
       lignes,
       montantTotal,
       paiements,
@@ -264,6 +268,71 @@ export const useCaisse = create<Etat>()((set, get) => ({
     }
   },
 
+  modifierVente: (venteId, lignes, paiements) => {
+    const montantTotal = lignes.reduce((t, l) => t + l.prixApplique * l.quantite, 0);
+    const modifieeLe = Date.now();
+    set((etat) => ({
+      ventes: etat.ventes.map((v) =>
+        v.id === venteId ? { ...v, lignes, paiements, montantTotal, modifieeLe } : v
+      ),
+    }));
+
+    if (supabase) {
+      (async () => {
+        try {
+          const { error: eVente } = await supabase!
+            .from("ventes")
+            .update({ montant_total: montantTotal, modifiee_le: modifieeLe })
+            .eq("id", venteId);
+          if (eVente) throw eVente;
+
+          const { error: eDelLignes } = await supabase!
+            .from("lignes_vente")
+            .delete()
+            .eq("vente_id", venteId);
+          if (eDelLignes) throw eDelLignes;
+
+          if (lignes.length > 0) {
+            const { error: eLignes } = await supabase!.from("lignes_vente").insert(
+              lignes.map((l) => ({
+                id: genererId(),
+                vente_id: venteId,
+                produit_id: l.produitId,
+                nom: l.nom,
+                quantite: l.quantite,
+                prix_applique: l.prixApplique,
+              }))
+            );
+            if (eLignes) throw eLignes;
+          }
+
+          const { error: eDelPaiements } = await supabase!
+            .from("paiements")
+            .delete()
+            .eq("vente_id", venteId);
+          if (eDelPaiements) throw eDelPaiements;
+
+          if (paiements.length > 0) {
+            const { error: ePaiements } = await supabase!.from("paiements").insert(
+              paiements.map((p) => ({
+                id: p.id,
+                vente_id: venteId,
+                mode: p.mode,
+                montant: p.montant,
+              }))
+            );
+            if (ePaiements) throw ePaiements;
+          }
+        } catch (err) {
+          signalerErreur(
+            "Modification non synchronisée",
+            err instanceof Error ? { message: err.message } : { message: String(err) }
+          );
+        }
+      })();
+    }
+  },
+
   importerVentes: (nomSoiree, ventesImportees) => {
     const { soirees, ventes } = get();
     let soiree = soirees.find((s) => s.nom === nomSoiree);
@@ -295,6 +364,7 @@ export const useCaisse = create<Etat>()((set, get) => ({
       id: genererId(),
       soireeId: soiree!.id,
       horodatage: v.horodatage,
+      modifieeLe: v.modifieeLe,
       lignes: v.lignes,
       montantTotal: v.montantTotal,
       paiements: v.paiements,
@@ -322,6 +392,7 @@ export const useCaisse = create<Etat>()((set, get) => ({
               id: v.id,
               soiree_id: v.soireeId,
               horodatage: v.horodatage,
+              modifiee_le: v.modifieeLe,
               montant_total: v.montantTotal,
             });
             if (eVente) throw eVente;

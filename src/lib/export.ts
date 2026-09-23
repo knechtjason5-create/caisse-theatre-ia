@@ -1,4 +1,4 @@
-import { Soiree, Vente } from "./types";
+import { Produit, Soiree, Vente } from "./types";
 import { formaterDate, formaterHeure } from "./format";
 
 function echapperCsv(valeur: string): string {
@@ -9,27 +9,71 @@ function formaterMontantCsv(montant: number): string {
   return montant.toFixed(2).replace(".", ",");
 }
 
-export function genererCsvSoiree(soiree: Soiree, ventesSoiree: Vente[]): string {
+export const COLONNE_AUTRES_PRODUITS = "Autres produits";
+
+export function genererCsvSoiree(soiree: Soiree, ventesSoiree: Vente[], produits: Produit[]): string {
   const lignes = [...ventesSoiree].sort((a, b) => a.horodatage - b.horodatage);
 
-  const entetes = ["Heure", "Produits", "Montant (€)", "Paiements"];
+  const entetes = [
+    "Heure commande",
+    "Heure modification",
+    ...produits.map((p) => p.nom),
+    COLONNE_AUTRES_PRODUITS,
+    "Montant (€)",
+    "Mode de paiement",
+    "Espèces (€)",
+    "CB (€)",
+  ];
+
   const rangees = lignes.map((v) => {
-    const produits = v.lignes.map((l) => `${l.nom} x${l.quantite}`).join(", ");
-    const paiements = v.paiements
-      .map((p) => `${p.mode}: ${formaterMontantCsv(p.montant)} €`)
-      .join(" + ");
+    const quantitesParProduit = new Map<string, number>();
+    const autres: string[] = [];
+    for (const l of v.lignes) {
+      const produit = produits.find((p) => p.id === l.produitId) ?? produits.find((p) => p.nom === l.nom);
+      if (produit) {
+        quantitesParProduit.set(produit.id, (quantitesParProduit.get(produit.id) ?? 0) + l.quantite);
+      } else {
+        autres.push(`${l.nom} x${l.quantite}`);
+      }
+    }
+
+    const especes = v.paiements.filter((p) => p.mode === "Espèces").reduce((t, p) => t + p.montant, 0);
+    const cb = v.paiements.filter((p) => p.mode === "CB").reduce((t, p) => t + p.montant, 0);
+    const modes = [...new Set(v.paiements.map((p) => p.mode))].join(" + ");
+
     return [
       formaterHeure(v.horodatage),
-      produits,
+      v.modifieeLe ? formaterHeure(v.modifieeLe) : "",
+      ...produits.map((p) => String(quantitesParProduit.get(p.id) ?? 0)),
+      autres.join(", "),
       formaterMontantCsv(v.montantTotal),
-      paiements,
+      modes,
+      formaterMontantCsv(especes),
+      formaterMontantCsv(cb),
     ]
       .map(echapperCsv)
       .join(";");
   });
 
   const recette = lignes.reduce((t, v) => t + v.montantTotal, 0);
-  const rangeeTotal = ["", "TOTAL", formaterMontantCsv(recette), ""]
+  const totalEspeces = lignes
+    .flatMap((v) => v.paiements)
+    .filter((p) => p.mode === "Espèces")
+    .reduce((t, p) => t + p.montant, 0);
+  const totalCb = lignes
+    .flatMap((v) => v.paiements)
+    .filter((p) => p.mode === "CB")
+    .reduce((t, p) => t + p.montant, 0);
+  const rangeeTotal = [
+    "",
+    "",
+    ...produits.map(() => ""),
+    "TOTAL",
+    formaterMontantCsv(recette),
+    "",
+    formaterMontantCsv(totalEspeces),
+    formaterMontantCsv(totalCb),
+  ]
     .map(echapperCsv)
     .join(";");
 
@@ -50,8 +94,8 @@ function slugifier(texte: string): string {
     .replace(/(^-|-$)/g, "");
 }
 
-export function telechargerCsvSoiree(soiree: Soiree, ventesSoiree: Vente[]): void {
-  const csv = genererCsvSoiree(soiree, ventesSoiree);
+export function telechargerCsvSoiree(soiree: Soiree, ventesSoiree: Vente[], produits: Produit[]): void {
+  const csv = genererCsvSoiree(soiree, ventesSoiree, produits);
   const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const lien = document.createElement("a");

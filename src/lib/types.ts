@@ -32,6 +32,7 @@ export type Vente = {
   id: string;
   soireeId: string;
   horodatage: number;
+  modifieeLe: number | null;
   lignes: LigneVente[];
   montantTotal: number;
   paiements: Paiement[];

@@ -5,6 +5,8 @@ import { useCaisse } from "@/lib/store";
 import { formaterEuros, formaterDate, formaterHeure } from "@/lib/format";
 import { telechargerCsvSoiree } from "@/lib/export";
 import { parserCsvSoiree } from "@/lib/import";
+import ModifierVenteModal from "./ModifierVenteModal";
+import { Vente } from "@/lib/types";
 
 export default function HistoriqueView() {
   const soirees = useCaisse((e) => e.soirees);
@@ -14,6 +16,7 @@ export default function HistoriqueView() {
   const importerVentes = useCaisse((e) => e.importerVentes);
   const [ouverte, setOuverte] = useState<string | null>(null);
   const [messageImport, setMessageImport] = useState<{ texte: string; erreur: boolean } | null>(null);
+  const [venteEnEdition, setVenteEnEdition] = useState<Vente | null>(null);
   const inputFichierRef = useRef<HTMLInputElement>(null);
 
   const supprimer = (venteId: string, montant: number) => {
@@ -82,6 +85,7 @@ export default function HistoriqueView() {
   }
 
   return (
+    <>
     <div className="flex-1 overflow-y-auto px-4 pb-8 pt-4">
       {blocImport}
       <div className="flex flex-col gap-2.5">
@@ -153,7 +157,7 @@ export default function HistoriqueView() {
 
                   {ventesSoiree.length > 0 && (
                     <button
-                      onClick={() => telechargerCsvSoiree(s, ventesSoiree)}
+                      onClick={() => telechargerCsvSoiree(s, ventesSoiree, produits)}
                       className="mb-3 w-full rounded-full border border-line px-4 py-2.5 text-center text-sm font-medium text-ink"
                     >
                       Télécharger le CSV des ventes
@@ -193,23 +197,36 @@ export default function HistoriqueView() {
                             return (
                               <div
                                 key={v.id}
-                                className="flex items-center justify-between gap-3 rounded-lg border border-line bg-bg px-3 py-2"
+                                className="flex items-start justify-between gap-3 rounded-lg border border-line bg-bg px-3 py-2"
                               >
                                 <div className="flex flex-col">
                                   <span className="font-mono text-xs tabular-nums text-ink">
-                                    {formaterHeure(v.horodatage)} · {formaterEuros(v.montantTotal)}
+                                    {formaterEuros(v.montantTotal)}
                                   </span>
                                   <span className="text-[11px] text-ink-faint">
                                     {v.lignes.map((l) => `${l.nom} ×${l.quantite}`).join(", ")}
                                     {modes ? ` · ${modes}` : ""}
                                   </span>
                                 </div>
-                                <button
-                                  onClick={() => supprimer(v.id, v.montantTotal)}
-                                  className="shrink-0 text-xs text-danger underline"
-                                >
-                                  Supprimer
-                                </button>
+                                <div className="flex shrink-0 flex-col items-end gap-1">
+                                  <span className="font-mono text-[11px] tabular-nums text-ink-faint">
+                                    {formaterHeure(v.horodatage)}
+                                  </span>
+                                  <div className="flex items-center gap-3">
+                                    <button
+                                      onClick={() => setVenteEnEdition(v)}
+                                      className="text-xs text-ink-soft underline"
+                                    >
+                                      Modifier
+                                    </button>
+                                    <button
+                                      onClick={() => supprimer(v.id, v.montantTotal)}
+                                      className="text-xs text-danger underline"
+                                    >
+                                      Supprimer
+                                    </button>
+                                  </div>
+                                </div>
                               </div>
                             );
                           })}
@@ -223,5 +240,9 @@ export default function HistoriqueView() {
         })}
       </div>
     </div>
+    {venteEnEdition && (
+      <ModifierVenteModal vente={venteEnEdition} onFermer={() => setVenteEnEdition(null)} />
+    )}
+    </>
   );
 }
