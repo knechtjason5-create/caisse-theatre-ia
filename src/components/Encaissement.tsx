@@ -40,7 +40,7 @@ export default function Encaissement({ onRetour, onValide }: { onRetour: () => v
 
   const modifierMontant = (id: string, valeur: string) => {
     const n = Number(valeur.replace(",", "."));
-    setLignes((ls) => ls.map((l) => (l.id === id ? { ...l, montant: Number.isFinite(n) ? n : 0 } : l)));
+    setLignes((ls) => ls.map((l) => (l.id === id ? { ...l, montant: Number.isFinite(n) ? Math.max(0, n) : 0 } : l)));
   };
 
   const modifierMode = (id: string, mode: ModePaiement) => {

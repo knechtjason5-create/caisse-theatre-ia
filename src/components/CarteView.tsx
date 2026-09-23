@@ -18,8 +18,9 @@ export default function CarteView() {
   const [prix, setPrix] = useState("");
 
   const ajouter = () => {
-    if (!nom.trim() || !prix) return;
-    ajouterProduit({ nom: nom.trim(), categorie, prix: Number(prix.replace(",", ".")), visible: true });
+    const prixSaisi = Number(prix.replace(",", "."));
+    if (!nom.trim() || !prix || !Number.isFinite(prixSaisi) || prixSaisi < 0) return;
+    ajouterProduit({ nom: nom.trim(), categorie, prix: prixSaisi, visible: true });
     setNom("");
     setPrix("");
     setAjoutOuvert(false);
@@ -76,9 +77,10 @@ export default function CarteView() {
                 <input
                   type="number"
                   step="0.10"
+                  min="0"
                   inputMode="decimal"
                   value={p.prix}
-                  onChange={(e) => modifierProduit(p.id, { prix: Number(e.target.value) || 0 })}
+                  onChange={(e) => modifierProduit(p.id, { prix: Math.max(0, Number(e.target.value) || 0) })}
                   onBlur={() => synchroniserProduit(p.id)}
                   className="w-20 rounded-md border border-line bg-bg px-2 py-1.5 text-right font-mono text-sm tabular-nums text-ink outline-none focus:border-ink"
                 />

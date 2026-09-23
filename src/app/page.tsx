@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import { useSupabaseSync } from "@/lib/useSupabaseSync";
-import { PinGateProvider, useDemanderCode, estDeverrouille } from "@/lib/pinGate";
+import { PinGateProvider, useDemanderCode, marquerDeverrouille } from "@/lib/pinGate";
+import { sessionAutorisee } from "@/lib/supabase";
 import Header from "@/components/Header";
 import Nav, { Onglet } from "@/components/Nav";
 import VenteView from "@/components/VenteView";
@@ -41,9 +42,10 @@ function EntreeVerrouillee({ onEntrer }: { onEntrer: () => void }) {
 }
 
 function Contenu() {
-  const { pret, erreur } = useSupabaseSync();
   const demanderCode = useDemanderCode();
   const [deverrouille, setDeverrouille] = useState(false);
+  const [verificationInitiale, setVerificationInitiale] = useState(true);
+  const { pret, erreur } = useSupabaseSync(deverrouille);
   const [onglet, setOnglet] = useState<Onglet>("vente");
   const [modalOuverte, setModalOuverte] = useState(false);
 
@@ -52,13 +54,25 @@ function Contenu() {
   }, [demanderCode]);
 
   useEffect(() => {
-    if (estDeverrouille()) {
-      setDeverrouille(true);
-      return;
-    }
-    entrer();
+    sessionAutorisee().then((ok) => {
+      setVerificationInitiale(false);
+      if (ok) {
+        marquerDeverrouille();
+        setDeverrouille(true);
+      } else {
+        entrer();
+      }
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  if (verificationInitiale) {
+    return <div className="min-h-full bg-bg" />;
+  }
+
+  if (!deverrouille) {
+    return <EntreeVerrouillee onEntrer={entrer} />;
+  }
 
   if (!pret) {
     return <div className="min-h-full bg-bg" />;
@@ -71,10 +85,6 @@ function Contenu() {
         <p className="text-sm text-ink-soft">{erreur}</p>
       </div>
     );
-  }
-
-  if (!deverrouille) {
-    return <EntreeVerrouillee onEntrer={entrer} />;
   }
 
   return (

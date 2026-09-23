@@ -86,7 +86,7 @@ export default function ModifierVenteModal({
   const modifierMontantPaiement = (id: string, valeur: string) => {
     const n = Number(valeur.replace(",", "."));
     setPaiements((ps) =>
-      ps.map((p) => (p.id === id ? { ...p, montant: Number.isFinite(n) ? n : 0 } : p))
+      ps.map((p) => (p.id === id ? { ...p, montant: Number.isFinite(n) ? Math.max(0, n) : 0 } : p))
     );
   };
 

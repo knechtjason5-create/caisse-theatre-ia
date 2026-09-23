@@ -35,12 +35,18 @@ Puis ouvrir [http://localhost:3000](http://localhost:3000).
 - Le suivi de stock n'est pas implémenté (retiré du périmètre).
 - Un code à 4 chiffres protège l'ensemble de l'application : il est demandé une
   seule fois à l'arrivée sur le site, puis reste valable pour la session en cours
-  sur cet appareil (`src/lib/pinGate.tsx`). Le code est vérifié côté serveur et la
-  base refuse elle-même toute écriture sans lui (RLS + en-tête `x-caisse-code`,
-  voir `supabase/schema.sql`) — pas seulement l'interface. Le code n'est stocké
-  qu'en base (table `app_config`), pas dans le code source de l'app. Pour le
-  changer : `update app_config set valeur = '….' where cle = 'code_acces';`
-  dans l'éditeur SQL Supabase.
+  sur cet appareil (`src/lib/pinGate.tsx`). Chaque appareil ouvre une session
+  anonyme Supabase que le code déverrouille côté base (fonction `deverrouiller`,
+  5 essais par quart d'heure) : sans code, la base ne renvoie ni n'accepte rien,
+  en lecture, en écriture comme en temps réel (RLS, voir `supabase/schema.sql`).
+  Les connexions anonymes doivent être activées dans Supabase (Authentication →
+  Sign In / Providers → « Allow anonymous sign-ins »). Le code n'est stocké
+  qu'en base (table `app_config`), jamais dans le dépôt. Pour le changer :
+  `update app_config set valeur = '….' where cle = 'code_acces';` dans l'éditeur
+  SQL Supabase (puis `delete from appareils_autorises;` pour forcer tous les
+  appareils à ressaisir le nouveau code).
+- Prix, quantités et montants négatifs sont refusés par l'interface et par la base.
+- En-têtes de sécurité HTTP (CSP, anti-iframe…) définis dans `next.config.ts`.
 
 ## Déploiement
 

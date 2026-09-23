@@ -1,12 +1,9 @@
 "use client";
 
 import { createContext, useCallback, useContext, useState, ReactNode } from "react";
-import { supabase, configurerCodeAcces, recupererCodeSession } from "./supabase";
+import { deverrouiller } from "./supabase";
 
-export function estDeverrouille(): boolean {
-  return !!recupererCodeSession();
-}
-
+let deverrouilleCetteSession = false;
 type Demande = { action: string; resoudre: (ok: boolean) => void };
 
 const PinGateContext = createContext<((action: string) => Promise<boolean>) | null>(null);
@@ -15,8 +12,8 @@ const PinGateContext = createContext<((action: string) => Promise<boolean>) | nu
  * Fournit demanderCode() à toute l'app : une modale (pas window.prompt, non
  * supporté dans certains navigateurs embarqués) pour saisir le code à 4
  * chiffres avant une action sensible. Le code est vérifié côté serveur
- * (fonction Supabase verifier_code_acces) : la base elle-même refuse toute
- * écriture sans ce code (RLS, voir supabase/schema.sql), pas seulement l'interface.
+ * (fonction Supabase deverrouiller) : la base elle-même refuse toute lecture
+ * ou écriture sans ce code (RLS, voir supabase/schema.sql), pas seulement l'interface.
  */
 export function PinGateProvider({ children }: { children: ReactNode }) {
   const [demande, setDemande] = useState<Demande | null>(null);
@@ -25,7 +22,7 @@ export function PinGateProvider({ children }: { children: ReactNode }) {
   const [verification, setVerification] = useState(false);
 
   const demanderCode = useCallback((action: string): Promise<boolean> => {
-    if (estDeverrouille()) return Promise.resolve(true);
+    if (deverrouilleCetteSession) return Promise.resolve(true);
     return new Promise<boolean>((resoudre) => {
       setSaisie("");
       setErreur(false);
@@ -35,16 +32,11 @@ export function PinGateProvider({ children }: { children: ReactNode }) {
 
   const valider = async () => {
     if (!demande || verification) return;
-    const code = saisie.trim();
-    if (!supabase) {
-      setErreur(true);
-      return;
-    }
     setVerification(true);
-    const { data, error } = await supabase.rpc("verifier_code_acces", { code_saisi: code });
+    const ok = await deverrouiller(saisie.trim());
     setVerification(false);
-    if (!error && data === true) {
-      configurerCodeAcces(code);
+    if (ok) {
+      deverrouilleCetteSession = true;
       demande.resoudre(true);
       setDemande(null);
     } else {
@@ -115,6 +107,11 @@ export function PinGateProvider({ children }: { children: ReactNode }) {
       )}
     </PinGateContext.Provider>
   );
+}
+
+/** À appeler au chargement : une session déjà autorisée par la base n'a pas à ressaisir le code. */
+export function marquerDeverrouille(): void {
+  deverrouilleCetteSession = true;
 }
 
 export function useDemanderCode(): (action: string) => Promise<boolean> {
