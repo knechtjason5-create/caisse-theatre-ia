@@ -2,7 +2,7 @@
 
 Application d'aide à la vente au comptoir du bar : sélection des boissons, panier,
 encaissement divisible entre plusieurs personnes (chacune avec son propre mode de
-paiement), et historique par soirée. Voir [`Plan_Mise_En_Ligne.html`](../Plan_Mise_En_Ligne.html)
+paiement), et historique par soirée. Voir [`Plans/Plan_Mise_En_Ligne.html`](../Plans/Plan_Mise_En_Ligne.html)
 à la racine du dossier pour le plan de mise en ligne complet.
 
 ## En ligne
