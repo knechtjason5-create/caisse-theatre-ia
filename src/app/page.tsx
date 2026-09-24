@@ -141,7 +141,11 @@ function Contenu() {
   };
 
   const entrer = useCallback(() => {
-    demanderCode("accéder à la caisse").then(setDeverrouille);
+    demanderCode("accéder à la caisse").then((ok) => {
+      setDeverrouille(ok);
+      // Code validé : le rideau, tombé à la fermeture de la fenêtre, s'ouvre sur la caisse.
+      if (ok) setRideau({ mode: "ouvre", titre: "Théâtre de l’IA" });
+    });
   }, [demanderCode]);
 
   useEffect(() => {
@@ -157,75 +161,11 @@ function Contenu() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (verificationInitiale) {
-    return <Chargement />;
-  }
-
-  if (!deverrouille) {
-    return <EntreeVerrouillee onEntrer={entrer} />;
-  }
-
-  if (!pret) {
-    return <Squelette />;
-  }
-
-  if (erreur) {
-    return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
-        <p className="text-sm font-medium text-ink">Connexion à la base en ligne impossible</p>
-        <p className="text-sm text-ink-soft">{erreur}</p>
-      </div>
-    );
-  }
-
+  // Le rideau reste à la même place dans l'arbre quel que soit l'écran affiché dessous
+  // (squelette puis caisse) : sinon il serait recréé et son animation repartirait de zéro.
   return (
-    <div className="flex flex-1 flex-col">
-      <Header onOuvrirSoiree={() => setModalOuverte(true)} onCloturer={cloturer} />
-
-      <main
-        key={onglet}
-        className={`${
-          sens === "droite" ? "anim-entre-droite" : sens === "gauche" ? "anim-entre-gauche" : "anim-fondu"
-        } flex flex-1 flex-col pb-16`}
-        onTouchStart={(e) => {
-          const cible = e.target as HTMLElement;
-          const t = e.touches[0];
-          toucher.current = e.touches.length === 1 && !cible.closest(ZONES_SANS_BALAYAGE) ? { x: t.clientX, y: t.clientY } : null;
-        }}
-        onTouchEnd={(e) => {
-          const d = toucher.current;
-          toucher.current = null;
-          if (!d) return;
-          const t = e.changedTouches[0];
-          const dx = t.clientX - d.x;
-          const dy = t.clientY - d.y;
-          if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-          const i = ONGLETS.findIndex((o) => o.id === onglet);
-          const j = i + (dx < 0 ? 1 : -1);
-          if (j >= 0 && j < ONGLETS.length) changerOnglet(ONGLETS[j].id);
-        }}
-      >
-        {onglet === "vente" && (
-          <VenteView onOuvrirSoiree={() => setModalOuverte(true)} />
-        )}
-        {onglet === "carte" && <CarteView />}
-        {onglet === "historique" && <HistoriqueView />}
-      </main>
-
-      <Nav actif={onglet} onChange={changerOnglet} />
-
-      <JalonRecette />
-
-      {modalOuverte && (
-        <OuvrirSoireeModal
-          onOuverte={(nom) => {
-            setModalOuverte(false);
-            setRideau({ mode: "ouvre", titre: nom });
-          }}
-          onAnnuler={() => setModalOuverte(false)}
-        />
-      )}
-
+    <>
+      {ecran()}
       {rideau && (
         <Rideau
           key={rideau.mode}
@@ -236,17 +176,90 @@ function Contenu() {
           }}
         />
       )}
-
-      {recap && (
-        <RecapSoiree
-          soiree={recap}
-          onFermer={() => {
-            setRecap(null);
-            // Le rideau se relève sur l'application.
-            setRideau({ mode: "ouvre", titre: "Théâtre de l’IA" });
-          }}
-        />
-      )}
-    </div>
+    </>
   );
+
+  function ecran() {
+    if (verificationInitiale) {
+      return <Chargement />;
+    }
+
+    if (!deverrouille) {
+      return <EntreeVerrouillee onEntrer={entrer} />;
+    }
+
+    if (!pret) {
+      return <Squelette />;
+    }
+
+    if (erreur) {
+      return (
+        <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
+          <p className="text-sm font-medium text-ink">Connexion à la base en ligne impossible</p>
+          <p className="text-sm text-ink-soft">{erreur}</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-1 flex-col">
+        <Header onOuvrirSoiree={() => setModalOuverte(true)} onCloturer={cloturer} />
+
+        <main
+          key={onglet}
+          className={`${
+            sens === "droite" ? "anim-entre-droite" : sens === "gauche" ? "anim-entre-gauche" : "anim-fondu"
+          } flex flex-1 flex-col pb-16`}
+          onTouchStart={(e) => {
+            const cible = e.target as HTMLElement;
+            const t = e.touches[0];
+            toucher.current = e.touches.length === 1 && !cible.closest(ZONES_SANS_BALAYAGE) ? { x: t.clientX, y: t.clientY } : null;
+          }}
+          onTouchEnd={(e) => {
+            const d = toucher.current;
+            toucher.current = null;
+            if (!d) return;
+            const t = e.changedTouches[0];
+            const dx = t.clientX - d.x;
+            const dy = t.clientY - d.y;
+            if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+            const i = ONGLETS.findIndex((o) => o.id === onglet);
+            const j = i + (dx < 0 ? 1 : -1);
+            if (j >= 0 && j < ONGLETS.length) changerOnglet(ONGLETS[j].id);
+          }}
+        >
+          {onglet === "vente" && (
+            <VenteView onOuvrirSoiree={() => setModalOuverte(true)} />
+          )}
+          {onglet === "carte" && <CarteView />}
+          {onglet === "historique" && <HistoriqueView />}
+        </main>
+
+        <Nav actif={onglet} onChange={changerOnglet} />
+
+        <JalonRecette />
+
+        {modalOuverte && (
+          <OuvrirSoireeModal
+            onOuverte={(nom) => {
+              setModalOuverte(false);
+              setRideau({ mode: "ouvre", titre: nom });
+            }}
+            onAnnuler={() => setModalOuverte(false)}
+          />
+        )}
+
+        {recap && (
+          <RecapSoiree
+            soiree={recap}
+            onFermer={() => {
+              setRecap(null);
+              // Le rideau se relève sur l'application.
+              setRideau({ mode: "ouvre", titre: "Théâtre de l’IA" });
+            }}
+          />
+        )}
+      </div>
+    );
+  }
 }

@@ -49,8 +49,8 @@ Puis ouvrir [http://localhost:3000](http://localhost:3000).
 - Confirmations (clôture, suppression d'une vente ou d'une boisson) : fenêtre interne
   `src/lib/confirmation.tsx`, jamais `window.confirm()` — certains navigateurs embarqués
   le bloquent et renvoient toujours « non ».
-- Animations et gestes : rideau de scène à l'ouverture/clôture d'une soirée avec récap
-  animé, bille qui vole vers le panier, maintien du « + » (ajouts accélérés), glisser
+- Animations et gestes : rideau de scène après la saisie du code et à l'ouverture/clôture d'une soirée (récap
+  animé à la clôture), bille qui vole vers le panier, maintien du « + » (ajouts accélérés), glisser
   vers la gauche pour retirer/supprimer, balayage entre onglets, paliers de recette
   (100/250/500 €), note quand une vente arrive d'un autre appareil, verrou du code à
   pastilles (validation au 4ᵉ chiffre), squelette de chargement, vibrations Android.

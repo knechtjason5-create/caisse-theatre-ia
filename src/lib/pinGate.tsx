@@ -83,33 +83,33 @@ export function PinGateProvider({ children }: { children: ReactNode }) {
             key={echecs}
             className={`${echecs > 0 ? "anim-secouer" : "anim-apparaitre"} flex w-full max-w-xs flex-col gap-4 rounded-2xl border border-line bg-surface p-5`}
           >
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex flex-col gap-1">
-                <span className="font-mono text-xs uppercase tracking-wider text-ink-faint">
-                  Théâtre de l&rsquo;IA
-                </span>
-                <h2 className="text-lg font-semibold text-ink">Code requis</h2>
-                <p className="text-sm text-ink-soft">
-                  Entrez le code à 4 chiffres pour {demande.action}.
-                </p>
+            {/* Logo du théâtre à gauche, cadenas à droite : ils s'animent ensemble à la validation. */}
+            <div className="flex items-center justify-between">
+              <div className={ouvert ? "anim-pivoter" : ""}>
+                <Image src="/brand/mask-black.png" alt="" width={28} height={30} className="dark:hidden" style={{ height: "auto" }} />
+                <Image src="/brand/mask-white.png" alt="" width={28} height={30} className="hidden dark:block" style={{ height: "auto" }} />
               </div>
-              <div className="relative shrink-0">
-                <div className={ouvert ? "anim-pivoter" : ""}>
-                  <Image src="/brand/mask-black.png" alt="" width={30} height={32} className="dark:hidden" />
-                  <Image src="/brand/mask-white.png" alt="" width={30} height={32} className="hidden dark:block" />
-                </div>
-                <svg
-                  aria-hidden
-                  viewBox="0 0 16 18"
-                  className="absolute -bottom-1.5 -right-2 h-[18px] w-4 text-ink"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                >
-                  <path className={ouvert ? "anim-cadenas-anse" : ""} d="M4.5 8V5.5a3.5 3.5 0 0 1 7 0V8" />
-                  <rect x="2" y="8" width="12" height="9" rx="2" fill="var(--surface)" />
-                </svg>
-              </div>
+              <svg
+                aria-hidden
+                viewBox="0 0 16 18"
+                className="h-[22px] w-5 text-ink"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+              >
+                <path className={ouvert ? "anim-cadenas-anse" : ""} d="M4.5 8V5.5a3.5 3.5 0 0 1 7 0V8" />
+                <rect x="2" y="8" width="12" height="9" rx="2" fill="var(--surface)" />
+              </svg>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span className="font-mono text-xs uppercase tracking-wider text-ink-faint">
+                Théâtre de l&rsquo;IA
+              </span>
+              <h2 className="text-lg font-semibold text-ink">Code requis</h2>
+              <p className="text-sm text-ink-soft">
+                Entrez le code à 4 chiffres pour {demande.action}.
+              </p>
             </div>
 
             {/* Le champ reste la vraie zone de saisie (clavier numérique, collage) ; les pastilles le recouvrent. */}
