@@ -280,6 +280,31 @@ body::before {
 }
 .anim-scinder { transform-origin: top; animation: scinder 260ms var(--ease-spring) backwards; }
 
+/* Compteur d'articles : le chiffre roule vers le haut (ajout) ou vers le bas (retrait). */
+@keyframes roule-haut { from { opacity: 0; transform: translateY(70%); } }
+@keyframes roule-bas { from { opacity: 0; transform: translateY(-70%); } }
+.anim-roule-haut { animation: roule-haut 200ms var(--ease-out) backwards; }
+.anim-roule-bas { animation: roule-bas 200ms var(--ease-out) backwards; }
+
+/* Vente faite sur un autre appareil : l'en-tête s'illumine brièvement, la note descend. */
+@keyframes pulse-entete {
+  0%, 100% { background-color: var(--surface); }
+  30% { background-color: var(--surface-2); }
+}
+@keyframes descendre {
+  0% { opacity: 0; transform: translate(-50%, -12px); }
+  10%, 85% { opacity: 1; transform: translate(-50%, 0); }
+  100% { opacity: 0; transform: translate(-50%, -6px); }
+}
+.anim-pulse-entete { animation: pulse-entete 900ms ease-in-out; }
+.anim-descendre { animation: descendre 2800ms var(--ease-out) forwards; }
+
+/* Sélecteur Espèces / CB : la pastille glisse sous l'option choisie. */
+.pastille-glissante { transition: transform 200ms var(--ease-out); }
+
+/* Glisser pour supprimer : fond révélé derrière la ligne. */
+.glissable-fond { background: var(--danger); color: var(--bg); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 1ms !important;

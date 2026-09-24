@@ -7,6 +7,8 @@ import { telechargerCsvSoiree } from "@/lib/export";
 import { parserCsvSoiree } from "@/lib/import";
 import ModifierVenteModal from "./ModifierVenteModal";
 import MontantAnime from "./MontantAnime";
+import Glissable from "./Glissable";
+import { useConfirmer } from "@/lib/confirmation";
 import { cascade } from "@/lib/anim";
 import { Vente } from "@/lib/types";
 
@@ -16,15 +18,21 @@ export default function HistoriqueView() {
   const produits = useCaisse((e) => e.produits);
   const supprimerVente = useCaisse((e) => e.supprimerVente);
   const importerVentes = useCaisse((e) => e.importerVentes);
+  const confirmer = useConfirmer();
   const [ouverte, setOuverte] = useState<string | null>(null);
   const [messageImport, setMessageImport] = useState<{ texte: string; erreur: boolean } | null>(null);
   const [venteEnEdition, setVenteEnEdition] = useState<Vente | null>(null);
   const inputFichierRef = useRef<HTMLInputElement>(null);
 
-  const supprimer = (venteId: string, montant: number) => {
-    if (confirm(`Supprimer cette vente de ${formaterEuros(montant)} ? Cette action est irréversible.`)) {
-      supprimerVente(venteId);
-    }
+  const supprimer = async (venteId: string, montant: number): Promise<boolean> => {
+    const ok = await confirmer({
+      titre: `Supprimer cette vente de ${formaterEuros(montant)} ?`,
+      message: "Cette action est irréversible.",
+      libelle: "Supprimer",
+      danger: true,
+    });
+    if (ok) supprimerVente(venteId);
+    return ok;
   };
 
   const importerFichier = async (fichier: File) => {
@@ -209,8 +217,11 @@ export default function HistoriqueView() {
                           .map((v, vi) => {
                             const modes = [...new Set(v.paiements.map((p) => p.mode))].join(" + ");
                             return (
-                              <div
+                              <Glissable
                                 key={v.id}
+                                onGlisse={() => supprimer(v.id, v.montantTotal)}
+                              >
+                              <div
                                 style={cascade(vi, 35, 8)}
                                 className="anim-deplier flex items-start justify-between gap-3 rounded-lg border border-line bg-bg px-3 py-2"
                               >
@@ -243,6 +254,7 @@ export default function HistoriqueView() {
                                   </div>
                                 </div>
                               </div>
+                              </Glissable>
                             );
                           })}
                       </div>

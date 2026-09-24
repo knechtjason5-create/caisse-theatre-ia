@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useCaisse, CATEGORIES } from "@/lib/store";
 import { formaterEuros, formaterDate, formaterHeure } from "@/lib/format";
 import MontantAnime from "./MontantAnime";
+import Glissable from "./Glissable";
+import SelecteurMode from "./SelecteurMode";
 import { LigneVente, ModePaiement, Paiement, Produit, Vente } from "@/lib/types";
 
 type LignePaiementEdit = { id: string; mode: ModePaiement; montant: number };
@@ -115,7 +117,7 @@ export default function ModifierVenteModal({
   };
 
   return (
-    <div className="anim-feuille fixed inset-0 z-50 flex flex-col bg-bg">
+    <div data-no-swipe className="anim-feuille fixed inset-0 z-50 flex flex-col bg-bg">
       <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3.5">
         <div className="flex flex-col">
           <h1 className="text-lg font-semibold text-ink">Modifier la vente</h1>
@@ -144,10 +146,8 @@ export default function ModifierVenteModal({
         ) : (
           <div className="mb-5 flex flex-col gap-2">
             {lignes.map((l) => (
-              <div
-                key={l.produitId}
-                className="anim-deplier flex items-center justify-between gap-3 rounded-xl border border-line bg-surface px-3.5 py-2.5"
-              >
+              <Glissable key={l.produitId} libelle="Retirer" className="anim-deplier" onGlisse={() => retirerLigne(l.produitId)}>
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-line bg-surface px-3.5 py-2.5">
                 <div className="flex flex-col">
                   <span className="text-sm font-medium text-ink">{l.nom}</span>
                   <span className="font-mono text-xs text-ink-faint">
@@ -199,6 +199,7 @@ export default function ModifierVenteModal({
                   </button>
                 </div>
               </div>
+              </Glissable>
             ))}
           </div>
         )}
@@ -280,19 +281,7 @@ export default function ModifierVenteModal({
               key={p.id}
               className="anim-deplier flex items-center justify-between gap-3 rounded-xl border border-line bg-surface px-3.5 py-3"
             >
-              <div className="flex items-center gap-1 rounded-full bg-surface-2 p-1">
-                {(["Espèces", "CB"] as ModePaiement[]).map((m) => (
-                  <button
-                    key={m}
-                    onClick={() => modifierModePaiement(p.id, m)}
-                    className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                      p.mode === m ? "bg-ink text-bg" : "text-ink-soft"
-                    }`}
-                  >
-                    {m}
-                  </button>
-                ))}
-              </div>
+              <SelecteurMode valeur={p.mode} onChange={(m) => modifierModePaiement(p.id, m)} />
 
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-1">

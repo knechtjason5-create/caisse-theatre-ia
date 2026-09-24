@@ -5,6 +5,8 @@ import { CATEGORIES, useCaisse } from "@/lib/store";
 import ProductTile from "./ProductTile";
 import Encaissement from "./Encaissement";
 import { formaterEuros } from "@/lib/format";
+import { vibrer } from "@/lib/haptique";
+import ChiffreRoulant from "./ChiffreRoulant";
 
 export default function VenteView({ onOuvrirSoiree }: { onOuvrirSoiree: () => void }) {
   const soiree = useCaisse((e) => e.soireeActive());
@@ -69,11 +71,12 @@ export default function VenteView({ onOuvrirSoiree }: { onOuvrirSoiree: () => vo
 
       {nbArticles > 0 && !encaissementOuvert && (
         <button
+          data-cible-panier
           onClick={() => setEncaissementOuvert(true)}
           className="anim-monter fixed inset-x-4 bottom-20 z-30 flex items-center justify-between rounded-full bg-ink px-5 py-3.5 text-bg shadow-lg"
         >
           <span className="font-mono text-sm tabular-nums">
-            {nbArticles} article{nbArticles > 1 ? "s" : ""}
+            <ChiffreRoulant valeur={nbArticles} /> article{nbArticles > 1 ? "s" : ""}
           </span>
           <span key={total} className="anim-pop-doux inline-block text-base font-medium tabular-nums">
             {formaterEuros(total)} · Encaisser
@@ -87,6 +90,7 @@ export default function VenteView({ onOuvrirSoiree }: { onOuvrirSoiree: () => vo
           onValide={() => {
             setEncaissementOuvert(false);
             setVenteConfirmee(true);
+            vibrer([12, 40, 12]);
           }}
         />
       )}

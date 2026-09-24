@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { useCaisse } from "@/lib/store";
 import { formaterEuros } from "@/lib/format";
 import { ModePaiement } from "@/lib/types";
+import Glissable from "./Glissable";
+import SelecteurMode from "./SelecteurMode";
 
 type LignePaiement = { id: string; mode: ModePaiement; montant: number };
 
@@ -26,6 +28,14 @@ export default function Encaissement({ onRetour, onValide }: { onRetour: () => v
   const [lignes, setLignes] = useState<LignePaiement[]>(() =>
     repartirEquitablement(total, 1).map((m, i) => ({ id: `p${i}`, mode: "Espèces", montant: m }))
   );
+
+  // Le panier change pendant l'encaissement (retrait, ajout) : on répartit à nouveau le total, modes conservés.
+  const [totalReparti, setTotalReparti] = useState(total);
+  if (total !== totalReparti) {
+    setTotalReparti(total);
+    const montants = repartirEquitablement(total, nbPersonnes);
+    setLignes((ls) => ls.map((l, i) => ({ ...l, montant: montants[i] ?? 0 })));
+  }
 
   const articles = panier
     .map((a) => ({ ...a, produit: produits.find((p) => p.id === a.produitId) }))
@@ -64,7 +74,7 @@ export default function Encaissement({ onRetour, onValide }: { onRetour: () => v
   };
 
   return (
-    <div className="anim-feuille fixed inset-0 z-50 flex flex-col bg-bg">
+    <div data-no-swipe className="anim-feuille fixed inset-0 z-50 flex flex-col bg-bg">
       <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3.5">
         <div className="flex items-center gap-3">
           <button
@@ -91,10 +101,12 @@ export default function Encaissement({ onRetour, onValide }: { onRetour: () => v
         ) : (
           <div className="mb-5 flex flex-col gap-2">
             {articles.map((a) => (
-              <div
+              <Glissable
                 key={a.produitId}
-                className="flex items-center justify-between gap-3 rounded-xl border border-line bg-surface px-3.5 py-2.5"
+                libelle="Retirer"
+                onGlisse={() => ajouterAuPanier(a.produitId, -a.quantite)}
               >
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-line bg-surface px-3.5 py-2.5">
                 <div className="flex flex-col">
                   <span className="text-sm font-medium text-ink">{a.produit.nom}</span>
                   <span className="font-mono text-xs text-ink-faint">
@@ -126,6 +138,7 @@ export default function Encaissement({ onRetour, onValide }: { onRetour: () => v
                   </span>
                 </div>
               </div>
+              </Glissable>
             ))}
           </div>
         )}
@@ -150,7 +163,7 @@ export default function Encaissement({ onRetour, onValide }: { onRetour: () => v
             >
               −
             </button>
-            <span key={nbPersonnes} className="anim-pop-doux inline-block w-16 text-center font-mono text-base tabular-nums text-ink">
+            <span key={nbPersonnes} className="anim-pop-doux inline-block w-20 whitespace-nowrap text-center font-mono text-base tabular-nums text-ink">
               {nbPersonnes} pers.
             </span>
             <button
@@ -166,25 +179,13 @@ export default function Encaissement({ onRetour, onValide }: { onRetour: () => v
           {lignes.map((l, i) => (
             <div
               key={l.id}
-              className="anim-deplier flex items-center justify-between gap-3 rounded-xl border border-line bg-surface px-3.5 py-3"
+              className={`${i === 0 ? "anim-deplier" : "anim-scinder"} flex items-center justify-between gap-3 rounded-xl border border-line bg-surface px-3.5 py-3`}
             >
               <span className="w-20 shrink-0 text-sm text-ink-soft">
                 Personne {i + 1}
               </span>
 
-              <div className="flex items-center gap-1 rounded-full bg-surface-2 p-1">
-                {(["Espèces", "CB"] as ModePaiement[]).map((m) => (
-                  <button
-                    key={m}
-                    onClick={() => modifierMode(l.id, m)}
-                    className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                      l.mode === m ? "bg-ink text-bg" : "text-ink-soft"
-                    }`}
-                  >
-                    {m}
-                  </button>
-                ))}
-              </div>
+              <SelecteurMode valeur={l.mode} onChange={(m) => modifierMode(l.id, m)} />
 
               <div className="flex items-center gap-1">
                 <input

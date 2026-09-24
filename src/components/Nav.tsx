@@ -2,7 +2,7 @@
 
 export type Onglet = "vente" | "carte" | "historique";
 
-const ONGLETS: { id: Onglet; label: string }[] = [
+export const ONGLETS: { id: Onglet; label: string }[] = [
   { id: "vente", label: "Vente" },
   { id: "carte", label: "Carte" },
   { id: "historique", label: "Historique" },

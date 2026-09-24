@@ -3,10 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import { formaterEuros } from "@/lib/format";
 
-/** Fait défiler un nombre vers sa nouvelle valeur. Aucune animation au premier affichage : seulement quand la valeur change. */
-function useCompteur(cible: number, duree = 450): number {
-  const [valeur, setValeur] = useState(cible);
-  const courante = useRef(cible);
+/**
+ * Fait défiler un nombre vers sa nouvelle valeur. Sans `depuis`, aucune animation au premier
+ * affichage : seulement quand la valeur change. Avec `depuis`, le nombre part de cette valeur dès l'affichage.
+ */
+function useCompteur(cible: number, duree: number, depuis?: number): number {
+  const [valeur, setValeur] = useState(depuis ?? cible);
+  const courante = useRef(depuis ?? cible);
 
   useEffect(() => {
     const debut = courante.current;
@@ -22,12 +25,29 @@ function useCompteur(cible: number, duree = 450): number {
       if (p < 1) raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    // Secours : si l'onglet est en arrière-plan, requestAnimationFrame ne tourne pas — on affiche la valeur finale.
+    const secours = setTimeout(() => {
+      cancelAnimationFrame(raf);
+      courante.current = cible;
+      setValeur(cible);
+    }, duree + 150);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(secours);
+    };
   }, [cible, duree]);
 
   return valeur;
 }
 
-export default function MontantAnime({ valeur }: { valeur: number }) {
-  return <>{formaterEuros(useCompteur(valeur))}</>;
+export default function MontantAnime({
+  valeur,
+  depuis,
+  duree = 450,
+}: {
+  valeur: number;
+  depuis?: number;
+  duree?: number;
+}) {
+  return <>{formaterEuros(useCompteur(valeur, duree, depuis))}</>;
 }

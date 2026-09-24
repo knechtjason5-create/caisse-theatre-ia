@@ -1,9 +1,12 @@
 "use client";
 
 import { createContext, useCallback, useContext, useState, ReactNode } from "react";
+import Image from "next/image";
 import { deverrouiller } from "./supabase";
+import { vibrer } from "./haptique";
 
 let deverrouilleCetteSession = false;
+const DUREE_OUVERTURE = 650; // = animation « pivoter » de globals.css
 type Demande = { action: string; resoudre: (ok: boolean) => void };
 
 const PinGateContext = createContext<((action: string) => Promise<boolean>) | null>(null);
@@ -32,19 +35,36 @@ export function PinGateProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const valider = async () => {
-    if (!demande || verification) return;
+  const [ouvert, setOuvert] = useState(false);
+
+  const valider = async (code = saisie) => {
+    if (!demande || verification || ouvert) return;
     setVerification(true);
-    const ok = await deverrouiller(saisie.trim());
+    const ok = await deverrouiller(code.trim());
     setVerification(false);
     if (ok) {
+      // Le cadenas s'ouvre et le masque pivote avant que la fenêtre disparaisse.
       deverrouilleCetteSession = true;
-      demande.resoudre(true);
-      setDemande(null);
+      setOuvert(true);
+      vibrer(10);
+      setTimeout(() => {
+        demande.resoudre(true);
+        setDemande(null);
+        setOuvert(false);
+      }, DUREE_OUVERTURE);
     } else {
       setErreur(true);
       setEchecs((n) => n + 1);
+      setSaisie("");
+      vibrer([30, 40, 30]);
     }
+  };
+
+  const saisir = (valeur: string) => {
+    const chiffres = valeur.replace(/\D/g, "").slice(0, 4);
+    setSaisie(chiffres);
+    setErreur(false);
+    if (chiffres.length === 4) valider(chiffres);
   };
 
   const annuler = () => {
@@ -63,32 +83,67 @@ export function PinGateProvider({ children }: { children: ReactNode }) {
             key={echecs}
             className={`${echecs > 0 ? "anim-secouer" : "anim-apparaitre"} flex w-full max-w-xs flex-col gap-4 rounded-2xl border border-line bg-surface p-5`}
           >
-            <div className="flex flex-col gap-1">
-              <span className="font-mono text-xs uppercase tracking-wider text-ink-faint">
-                Théâtre de l&rsquo;IA
-              </span>
-              <h2 className="text-lg font-semibold text-ink">Code requis</h2>
-              <p className="text-sm text-ink-soft">
-                Entrez le code à 4 chiffres pour {demande.action}.
-              </p>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex flex-col gap-1">
+                <span className="font-mono text-xs uppercase tracking-wider text-ink-faint">
+                  Théâtre de l&rsquo;IA
+                </span>
+                <h2 className="text-lg font-semibold text-ink">Code requis</h2>
+                <p className="text-sm text-ink-soft">
+                  Entrez le code à 4 chiffres pour {demande.action}.
+                </p>
+              </div>
+              <div className="relative shrink-0">
+                <div className={ouvert ? "anim-pivoter" : ""}>
+                  <Image src="/brand/mask-black.png" alt="" width={30} height={32} className="dark:hidden" />
+                  <Image src="/brand/mask-white.png" alt="" width={30} height={32} className="hidden dark:block" />
+                </div>
+                <svg
+                  aria-hidden
+                  viewBox="0 0 16 18"
+                  className="absolute -bottom-1.5 -right-2 h-[18px] w-4 text-ink"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                >
+                  <path className={ouvert ? "anim-cadenas-anse" : ""} d="M4.5 8V5.5a3.5 3.5 0 0 1 7 0V8" />
+                  <rect x="2" y="8" width="12" height="9" rx="2" fill="var(--surface)" />
+                </svg>
+              </div>
             </div>
 
-            <input
-              autoFocus
-              inputMode="numeric"
-              maxLength={4}
-              value={saisie}
-              disabled={verification}
-              onChange={(e) => {
-                setSaisie(e.target.value.replace(/\D/g, ""));
-                setErreur(false);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") valider();
-                if (e.key === "Escape") annuler();
-              }}
-              className="rounded-lg border border-line bg-bg px-3 py-2.5 text-center text-lg tracking-[0.5em] text-ink outline-none focus:border-ink disabled:opacity-50"
-            />
+            {/* Le champ reste la vraie zone de saisie (clavier numérique, collage) ; les pastilles le recouvrent. */}
+            <label className="relative flex cursor-text justify-center gap-3 py-2">
+              <input
+                autoFocus
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                aria-label="Code à 4 chiffres"
+                maxLength={4}
+                value={saisie}
+                disabled={verification || ouvert}
+                onChange={(e) => saisir(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") valider();
+                  if (e.key === "Escape") annuler();
+                }}
+                className="absolute inset-0 h-full w-full opacity-0"
+              />
+              {[0, 1, 2, 3].map((i) => {
+                const rempli = i < saisie.length || ouvert;
+                return (
+                  <span
+                    key={i}
+                    aria-hidden
+                    className={`h-3.5 w-3.5 rounded-full border-2 transition-colors duration-150 ${
+                      erreur ? "border-danger" : "border-ink"
+                    } ${rempli ? "anim-pop bg-ink" : "bg-transparent"} ${
+                      i === saisie.length && !verification && !ouvert ? "animate-pulse" : ""
+                    }`}
+                  />
+                );
+              })}
+            </label>
 
             {erreur && <p className="text-center text-sm text-danger">Code incorrect.</p>}
 
@@ -101,11 +156,11 @@ export function PinGateProvider({ children }: { children: ReactNode }) {
                 Annuler
               </button>
               <button
-                onClick={valider}
-                disabled={verification}
+                onClick={() => valider()}
+                disabled={verification || ouvert}
                 className="flex-1 rounded-full bg-ink px-4 py-2.5 text-sm font-medium text-bg disabled:opacity-50"
               >
-                {verification ? "Vérification…" : "Valider"}
+                {ouvert ? "Bienvenue" : verification ? "Vérification…" : "Valider"}
               </button>
             </div>
           </div>

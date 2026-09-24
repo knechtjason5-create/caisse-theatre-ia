@@ -46,6 +46,17 @@ Puis ouvrir [http://localhost:3000](http://localhost:3000).
   SQL Supabase (puis `delete from appareils_autorises;` pour forcer tous les
   appareils à ressaisir le nouveau code).
 - Prix, quantités et montants négatifs sont refusés par l'interface et par la base.
+- Confirmations (clôture, suppression d'une vente ou d'une boisson) : fenêtre interne
+  `src/lib/confirmation.tsx`, jamais `window.confirm()` — certains navigateurs embarqués
+  le bloquent et renvoient toujours « non ».
+- Animations et gestes : rideau de scène à l'ouverture/clôture d'une soirée avec récap
+  animé, bille qui vole vers le panier, maintien du « + » (ajouts accélérés), glisser
+  vers la gauche pour retirer/supprimer, balayage entre onglets, paliers de recette
+  (100/250/500 €), note quand une vente arrive d'un autre appareil, verrou du code à
+  pastilles (validation au 4ᵉ chiffre), squelette de chargement, vibrations Android.
+  Toutes les animations sont en CSS dans `src/app/globals.css` (≤ 300 ms pour les
+  interactions) et respectent « réduire les animations » du système. Les zones qui
+  gèrent elles-mêmes le glissement sont marquées `data-no-swipe` / `data-glissable`.
 - En-têtes de sécurité HTTP (CSP, anti-iframe…) définis dans `next.config.ts`.
 
 ## Déploiement
@@ -64,5 +75,9 @@ Chaque `git push` sur `main` redéploie automatiquement le site.
 - `src/lib/store.ts` — état de l'application (zustand), synchronisé avec Supabase
 - `src/lib/useSupabaseSync.ts` — chargement initial + écoute des changements en temps réel
 - `src/lib/pinGate.tsx` — code à 4 chiffres demandé à l'entrée du site
-- `src/components/` — écrans (Vente, Panier, Encaissement, Carte, Historique)
+- `src/lib/confirmation.tsx` — fenêtre de confirmation interne (`useConfirmer`)
+- `src/lib/vol.ts`, `src/lib/haptique.ts`, `src/lib/anim.ts` — bille vers le panier, vibrations, cascades
+- `src/components/` — écrans (Vente, Panier, Encaissement, Carte, Historique) et effets
+  (`Rideau`, `RecapSoiree`, `JalonRecette`, `NotifVenteDistante`, `Glissable`,
+  `SelecteurMode`, `ChiffreRoulant`, `MontantAnime`)
 - `public/brand/` — logos de la charte graphique du Théâtre de l'IA

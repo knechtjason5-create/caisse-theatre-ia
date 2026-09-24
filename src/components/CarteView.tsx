@@ -5,6 +5,7 @@ import { CATEGORIES, useCaisse } from "@/lib/store";
 import { Categorie } from "@/lib/types";
 import { formaterEuros } from "@/lib/format";
 import { cascade } from "@/lib/anim";
+import { useConfirmer } from "@/lib/confirmation";
 
 export default function CarteView() {
   const produits = useCaisse((e) => e.produits);
@@ -12,6 +13,7 @@ export default function CarteView() {
   const synchroniserProduit = useCaisse((e) => e.synchroniserProduit);
   const supprimerProduit = useCaisse((e) => e.supprimerProduit);
   const ajouterProduit = useCaisse((e) => e.ajouterProduit);
+  const confirmer = useConfirmer();
 
   const [ajoutOuvert, setAjoutOuvert] = useState(false);
   const [nom, setNom] = useState("");
@@ -89,7 +91,9 @@ export default function CarteView() {
                 <span className="font-mono text-xs text-ink-faint">€</span>
                 <button
                   onClick={() => {
-                    if (confirm(`Supprimer « ${p.nom} » de la carte ?`)) supprimerProduit(p.id);
+                    confirmer({ titre: `Supprimer « ${p.nom} » de la carte ?`, libelle: "Supprimer", danger: true }).then(
+                      (ok) => ok && supprimerProduit(p.id)
+                    );
                   }}
                   className="ml-1 text-xs text-danger underline"
                 >

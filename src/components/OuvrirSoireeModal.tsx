@@ -15,15 +15,16 @@ export default function OuvrirSoireeModal({
   onOuverte,
   onAnnuler,
 }: {
-  onOuverte: () => void;
+  onOuverte: (nom: string) => void;
   onAnnuler: () => void;
 }) {
   const ouvrirSoiree = useCaisse((e) => e.ouvrirSoiree);
   const [nom, setNom] = useState(nomParDefaut());
 
   const demarrer = () => {
-    ouvrirSoiree(nom.trim() || nomParDefaut());
-    onOuverte();
+    const nomFinal = nom.trim() || nomParDefaut();
+    ouvrirSoiree(nomFinal);
+    onOuverte(nomFinal);
   };
 
   return (

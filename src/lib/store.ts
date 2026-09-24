@@ -18,6 +18,13 @@ function genererId(): string {
     : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+/** Ventes créées sur cet appareil : permet de reconnaître celles qui arrivent d'un autre appareil. */
+const ventesLocales = new Set<string>();
+
+export function estVenteLocale(venteId: string): boolean {
+  return ventesLocales.has(venteId);
+}
+
 function signalerErreur(contexte: string, error: { message: string } | null): void {
   if (!error) return;
   if (typeof window !== "undefined") {
@@ -211,6 +218,7 @@ export const useCaisse = create<Etat>()((set, get) => ({
       paiements,
     };
 
+    ventesLocales.add(vente.id);
     set((etat) => ({
       ventes: [...etat.ventes, vente],
       panier: [],
@@ -370,6 +378,7 @@ export const useCaisse = create<Etat>()((set, get) => ({
       paiements: v.paiements,
     }));
 
+    nouvellesVentes.forEach((v) => ventesLocales.add(v.id));
     set((etat) => ({
       soirees: etat.soirees.some((s) => s.id === soiree!.id) ? etat.soirees : [...etat.soirees, soiree!],
       ventes: [...etat.ventes, ...nouvellesVentes],
