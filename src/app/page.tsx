@@ -20,12 +20,31 @@ export default function Page() {
   );
 }
 
+function Masque({ className = "" }: { className?: string }) {
+  return (
+    <div className={className}>
+      <Image src="/brand/mask-black.png" alt="" width={36} height={39} className="dark:hidden" />
+      <Image src="/brand/mask-white.png" alt="" width={36} height={39} className="hidden dark:block" />
+    </div>
+  );
+}
+
+/** Attente : le masque respire. N'apparaît qu'après 200 ms pour ne pas clignoter sur un chargement rapide. */
+function Chargement() {
+  return (
+    <div className="flex min-h-full items-center justify-center bg-bg">
+      <div className="anim-fondu" style={{ animationDelay: "200ms" }}>
+        <Masque className="anim-respirer" />
+      </div>
+    </div>
+  );
+}
+
 function EntreeVerrouillee({ onEntrer }: { onEntrer: () => void }) {
   return (
     <div className="flex min-h-full flex-col items-center justify-center gap-4 px-6 text-center">
-      <Image src="/brand/mask-black.png" alt="" width={36} height={39} className="dark:hidden" />
-      <Image src="/brand/mask-white.png" alt="" width={36} height={39} className="hidden dark:block" />
-      <div className="flex flex-col gap-1">
+      <Masque className="anim-apparaitre" />
+      <div className="anim-monter flex flex-col gap-1" style={{ animationDelay: "100ms" }}>
         <span className="font-mono text-xs uppercase tracking-wider text-ink-faint">
           Théâtre de l&rsquo;IA
         </span>
@@ -33,7 +52,8 @@ function EntreeVerrouillee({ onEntrer }: { onEntrer: () => void }) {
       </div>
       <button
         onClick={onEntrer}
-        className="rounded-full bg-ink px-6 py-3 text-sm font-medium text-bg"
+        style={{ animationDelay: "200ms" }}
+        className="anim-monter rounded-full bg-ink px-6 py-3 text-sm font-medium text-bg"
       >
         Entrer le code
       </button>
@@ -67,7 +87,7 @@ function Contenu() {
   }, []);
 
   if (verificationInitiale) {
-    return <div className="min-h-full bg-bg" />;
+    return <Chargement />;
   }
 
   if (!deverrouille) {
@@ -75,7 +95,7 @@ function Contenu() {
   }
 
   if (!pret) {
-    return <div className="min-h-full bg-bg" />;
+    return <Chargement />;
   }
 
   if (erreur) {
@@ -91,7 +111,7 @@ function Contenu() {
     <div className="flex min-h-full flex-col">
       <Header onOuvrirSoiree={() => setModalOuverte(true)} />
 
-      <main className="flex flex-1 flex-col pb-16">
+      <main key={onglet} className="anim-fondu flex flex-1 flex-col pb-16">
         {onglet === "vente" && (
           <VenteView onOuvrirSoiree={() => setModalOuverte(true)} />
         )}

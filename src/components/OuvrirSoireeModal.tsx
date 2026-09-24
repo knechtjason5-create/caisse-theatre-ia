@@ -27,7 +27,7 @@ export default function OuvrirSoireeModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-bg">
+    <div className="anim-feuille fixed inset-0 z-50 flex flex-col bg-bg">
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 overflow-y-auto px-5 py-8">
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-col gap-1">

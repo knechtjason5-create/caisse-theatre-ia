@@ -4,18 +4,26 @@ import { Produit } from "@/lib/types";
 import { formaterEuros } from "@/lib/format";
 import { useCaisse } from "@/lib/store";
 
-export default function ProductTile({ produit }: { produit: Produit }) {
+export default function ProductTile({ produit, delai = 0 }: { produit: Produit; delai?: number }) {
   const quantite = useCaisse((e) => e.quantiteDansPanier(produit.id));
   const ajouterAuPanier = useCaisse((e) => e.ajouterAuPanier);
 
   return (
     <div
-      className={`flex flex-col gap-2 rounded-xl border px-4 py-3.5 transition-colors ${
+      style={{ animationDelay: `${delai}ms` }}
+      className={`anim-monter relative flex flex-col gap-2 rounded-xl border px-4 py-3.5 transition-colors duration-200 ${
         quantite > 0
           ? "border-ink bg-ink text-bg"
           : "border-line bg-surface text-ink"
       }`}
     >
+      {quantite > 0 && (
+        <span
+          key={quantite}
+          aria-hidden
+          className="anim-halo pointer-events-none absolute inset-0 rounded-xl border-2 border-ink"
+        />
+      )}
       <div className="flex items-start justify-between gap-2">
         <span className="text-[15px] font-medium leading-snug">{produit.nom}</span>
         <span
@@ -38,7 +46,10 @@ export default function ProductTile({ produit }: { produit: Produit }) {
         >
           −
         </button>
-        <span className="w-6 text-center font-mono text-sm tabular-nums">
+        <span
+          key={quantite}
+          className={`inline-block w-6 text-center font-mono text-sm tabular-nums ${quantite > 0 ? "anim-pop" : ""}`}
+        >
           {quantite}
         </span>
         <button

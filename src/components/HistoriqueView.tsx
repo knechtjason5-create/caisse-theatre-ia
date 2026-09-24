@@ -6,6 +6,8 @@ import { formaterEuros, formaterDate, formaterHeure } from "@/lib/format";
 import { telechargerCsvSoiree } from "@/lib/export";
 import { parserCsvSoiree } from "@/lib/import";
 import ModifierVenteModal from "./ModifierVenteModal";
+import MontantAnime from "./MontantAnime";
+import { cascade } from "@/lib/anim";
 import { Vente } from "@/lib/types";
 
 export default function HistoriqueView() {
@@ -89,7 +91,7 @@ export default function HistoriqueView() {
     <div className="flex-1 overflow-y-auto px-4 pb-8 pt-4">
       {blocImport}
       <div className="flex flex-col gap-2.5">
-        {soireesTriees.map((s) => {
+        {soireesTriees.map((s, si) => {
           const ventesSoiree = ventes.filter((v) => v.soireeId === s.id);
           const recette = ventesSoiree.reduce((t, v) => t + v.montantTotal, 0);
 
@@ -111,7 +113,11 @@ export default function HistoriqueView() {
           const estOuverte = ouverte === s.id;
 
           return (
-            <div key={s.id} className="rounded-xl border border-line bg-surface overflow-hidden">
+            <div
+              key={s.id}
+              style={cascade(si)}
+              className="anim-monter rounded-xl border border-line bg-surface overflow-hidden"
+            >
               <button
                 onClick={() => setOuverte(estOuverte ? null : s.id)}
                 className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left"
@@ -123,13 +129,21 @@ export default function HistoriqueView() {
                     {s.cloturéeLe ? "" : " · en cours"}
                   </span>
                 </div>
-                <span className="font-mono text-base tabular-nums text-ink">
-                  {formaterEuros(recette)}
+                <span className="flex items-center gap-2.5">
+                  <span className="font-mono text-base tabular-nums text-ink">
+                    <MontantAnime valeur={recette} />
+                  </span>
+                  <span
+                    aria-hidden
+                    className={`text-xs text-ink-faint transition-transform duration-200 ${estOuverte ? "rotate-180" : ""}`}
+                  >
+                    ▾
+                  </span>
                 </span>
               </button>
 
               {estOuverte && (
-                <div className="border-t border-line px-4 py-3.5">
+                <div className="anim-deplier border-t border-line px-4 py-3.5">
                   <div className="mb-3 flex justify-between gap-4 text-sm">
                     <div className="flex flex-col">
                       <span className="font-mono text-[11px] uppercase tracking-wider text-ink-faint">
@@ -192,12 +206,13 @@ export default function HistoriqueView() {
                       <div className="mt-2 flex flex-col gap-1.5">
                         {[...ventesSoiree]
                           .sort((a, b) => b.horodatage - a.horodatage)
-                          .map((v) => {
+                          .map((v, vi) => {
                             const modes = [...new Set(v.paiements.map((p) => p.mode))].join(" + ");
                             return (
                               <div
                                 key={v.id}
-                                className="flex items-start justify-between gap-3 rounded-lg border border-line bg-bg px-3 py-2"
+                                style={cascade(vi, 35, 8)}
+                                className="anim-deplier flex items-start justify-between gap-3 rounded-lg border border-line bg-bg px-3 py-2"
                               >
                                 <div className="flex flex-col">
                                   <span className="font-mono text-xs tabular-nums text-ink">

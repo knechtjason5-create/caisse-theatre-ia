@@ -4,6 +4,7 @@ import { useState } from "react";
 import { CATEGORIES, useCaisse } from "@/lib/store";
 import { Categorie } from "@/lib/types";
 import { formaterEuros } from "@/lib/format";
+import { cascade } from "@/lib/anim";
 
 export default function CarteView() {
   const produits = useCaisse((e) => e.produits);
@@ -34,10 +35,11 @@ export default function CarteView() {
       </p>
 
       <div className="flex flex-col gap-2">
-        {produits.map((p) => (
+        {produits.map((p, i) => (
           <div
             key={p.id}
-            className="flex flex-col gap-2 rounded-xl border border-line bg-surface px-4 py-3"
+            style={cascade(i, 35, 9)}
+            className="anim-monter flex flex-col gap-2 rounded-xl border border-line bg-surface px-4 py-3"
           >
             <div className="flex items-center gap-2">
               <input
@@ -100,7 +102,7 @@ export default function CarteView() {
       </div>
 
       {ajoutOuvert ? (
-        <div className="mt-4 flex flex-col gap-2.5 rounded-xl border border-line bg-surface px-4 py-3.5">
+        <div className="anim-deplier mt-4 flex flex-col gap-2.5 rounded-xl border border-line bg-surface px-4 py-3.5">
           <span className="font-mono text-xs uppercase tracking-wider text-ink-faint">
             Nouvelle boisson
           </span>

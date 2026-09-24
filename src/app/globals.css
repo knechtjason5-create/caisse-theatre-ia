@@ -58,3 +58,233 @@ button {
 * {
   -webkit-tap-highlight-color: transparent;
 }
+
+/* Animations : courtes (≤ 300 ms) pour ne jamais ralentir le service au comptoir. */
+:root {
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Retour tactile : tout bouton s'enfonce légèrement quand on appuie dessus. */
+button {
+  transition: transform 120ms var(--ease-out), background-color 150ms, color 150ms, opacity 150ms;
+}
+button:not(:disabled):active {
+  transform: scale(0.96);
+}
+
+@keyframes pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+@keyframes pop-doux {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+@keyframes monter {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes feuille {
+  from { opacity: 0; transform: translateY(28px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fondu {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes apparaitre {
+  from { opacity: 0; transform: scale(0.94); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes deplier {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes secouer {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+/* Halo : anneau qui s'échappe de la tuile quand on ajoute une boisson. */
+@keyframes halo {
+  from { opacity: 0.55; transform: scale(1); }
+  to { opacity: 0; transform: scale(1.07); }
+}
+/* Onde : pulsation lente et discrète pour signaler un état « en direct ». */
+@keyframes onde {
+  0% { opacity: 0.45; transform: scale(1); }
+  70%, 100% { opacity: 0; transform: scale(3.4); }
+}
+/* Respiration : logo de chargement. */
+@keyframes respirer {
+  from { opacity: 0.45; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1.05); }
+}
+/* Tracé : la coche de confirmation se dessine. */
+@keyframes trace {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes sortir {
+  to { opacity: 0; transform: translateY(12px); }
+}
+
+.anim-halo { animation: halo 420ms var(--ease-out) forwards; }
+.anim-onde { animation: onde 2.4s var(--ease-out) infinite; }
+.anim-respirer { animation: respirer 1.6s ease-in-out infinite alternate; }
+.anim-trace { stroke-dasharray: 1; stroke-dashoffset: 1; animation: trace 320ms var(--ease-out) 140ms forwards; }
+/* Bandeau de confirmation : monte, reste, puis s'efface (2,2 s au total, comme son minuteur). */
+.anim-toast { animation: monter 240ms var(--ease-out) backwards, sortir 240ms var(--ease-out) 1960ms forwards; }
+
+.anim-pop { animation: pop 260ms var(--ease-spring); }
+.anim-pop-doux { animation: pop-doux 240ms var(--ease-out); }
+.anim-monter { animation: monter 240ms var(--ease-out) backwards; }
+.anim-feuille { animation: feuille 280ms var(--ease-out) backwards; }
+.anim-fondu { animation: fondu 200ms var(--ease-out) backwards; }
+.anim-apparaitre { animation: apparaitre 220ms var(--ease-spring) backwards; }
+.anim-deplier { animation: deplier 200ms var(--ease-out) backwards; }
+.anim-secouer { animation: secouer 320ms var(--ease-out); }
+
+/* ===== Effets « signature » : ambiance, rideau, récap, gestes ===== */
+
+:root {
+  --lueur-1: rgba(190, 150, 70, 0.1);
+  --lueur-2: rgba(140, 40, 55, 0.07);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --lueur-1: rgba(217, 160, 90, 0.06);
+    --lueur-2: rgba(200, 80, 90, 0.06);
+  }
+}
+
+/* Fond : deux lueurs très lentes, derrière tout le contenu. Uniquement transform → aucun repaint. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: -20%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(45% 40% at 20% 15%, var(--lueur-1), transparent 70%),
+    radial-gradient(40% 45% at 85% 85%, var(--lueur-2), transparent 70%);
+  animation: derive 42s ease-in-out infinite alternate;
+}
+@keyframes derive {
+  from { transform: translate3d(-3%, -2%, 0) rotate(0deg); }
+  to { transform: translate3d(3%, 2%, 0) rotate(6deg); }
+}
+
+/* Rideau de scène : s'ouvre au démarrage d'une soirée, retombe à la clôture. */
+.rideau-panneau {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  width: 50.5%;
+  z-index: 70;
+  background-color: #4a1218;
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.32) 0 18px,
+    rgba(255, 255, 255, 0.06) 18px 36px,
+    rgba(0, 0, 0, 0.18) 36px 54px
+  );
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+}
+.rideau-gauche { left: 0; border-right: 2px solid #b8923f; }
+.rideau-droite { right: 0; border-left: 2px solid #b8923f; }
+.rideau-embleme {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 71;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+@keyframes rideau-ouvre-g { from { transform: translateX(0); } to { transform: translateX(-102%); } }
+@keyframes rideau-ouvre-d { from { transform: translateX(0); } to { transform: translateX(102%); } }
+@keyframes rideau-ferme-g { from { transform: translateX(-102%); } to { transform: translateX(0); } }
+@keyframes rideau-ferme-d { from { transform: translateX(102%); } to { transform: translateX(0); } }
+@keyframes fondu-sortie { from { opacity: 1; } to { opacity: 0; } }
+[data-rideau="ouvre"] .rideau-gauche { animation: rideau-ouvre-g 1100ms cubic-bezier(0.7, 0, 0.25, 1) 250ms both; }
+[data-rideau="ouvre"] .rideau-droite { animation: rideau-ouvre-d 1100ms cubic-bezier(0.7, 0, 0.25, 1) 250ms both; }
+[data-rideau="ferme"] .rideau-gauche { animation: rideau-ferme-g 900ms cubic-bezier(0.7, 0, 0.25, 1) both; }
+[data-rideau="ferme"] .rideau-droite { animation: rideau-ferme-d 900ms cubic-bezier(0.7, 0, 0.25, 1) both; }
+[data-rideau="ouvre"] .rideau-embleme { animation: fondu-sortie 300ms var(--ease-out) 150ms both; }
+[data-rideau="ferme"] .rideau-embleme { animation: fondu 400ms var(--ease-out) 650ms backwards; }
+
+/* Récap de soirée. */
+@keyframes barre { from { transform: scaleX(0); } }
+@keyframes anneau { from { stroke-dasharray: 0 264; } }
+.anim-barre { transform-origin: left; animation: barre 700ms var(--ease-out) backwards; }
+.anim-anneau { animation: anneau 900ms var(--ease-out) backwards; }
+.anim-sortie { animation: fondu-sortie 220ms var(--ease-out) forwards; }
+
+/* Jalon de recette : pastille + étincelles. */
+@keyframes jalon {
+  0% { opacity: 0; transform: translateY(-24px) scale(0.9); }
+  10% { opacity: 1; transform: translateY(0) scale(1.05); }
+  16% { transform: scale(1); }
+  86% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-10px); }
+}
+@keyframes etincelle {
+  from { opacity: 1; transform: translate(0, 0) scale(1); }
+  to { opacity: 0; transform: translate(var(--x), var(--y)) scale(0.3); }
+}
+.anim-jalon { animation: jalon 2600ms var(--ease-out) forwards; }
+.anim-etincelle { animation: etincelle 800ms var(--ease-out) 200ms both; }
+
+/* Code d'accès : cadenas qui s'ouvre, masque qui pivote. */
+@keyframes cadenas-ouvre {
+  0% { transform: translateY(0) rotate(0deg); }
+  45% { transform: translateY(-3px) rotate(0deg); }
+  100% { transform: translateY(-3px) rotate(-28deg); }
+}
+@keyframes pivoter {
+  from { transform: perspective(300px) rotateY(0deg); }
+  to { transform: perspective(300px) rotateY(360deg); }
+}
+.anim-cadenas-anse { transform-box: fill-box; transform-origin: 100% 100%; animation: cadenas-ouvre 420ms var(--ease-spring) forwards; }
+.anim-pivoter { animation: pivoter 650ms var(--ease-out); }
+
+/* Maintien du « + » : l'anneau se remplit, puis bat pendant la répétition. */
+@keyframes remplir { from { stroke-dashoffset: 107; } to { stroke-dashoffset: 0; } }
+@keyframes battement { from { opacity: 0.35; } to { opacity: 1; } }
+.anim-remplir { stroke-dasharray: 107; animation: remplir 380ms linear forwards; }
+.anim-battement { animation: battement 380ms ease-in-out infinite alternate; }
+
+/* Squelette de chargement. */
+@keyframes scintille {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+.squelette {
+  background: linear-gradient(90deg, var(--surface) 0%, var(--surface-2) 50%, var(--surface) 100%);
+  background-size: 200% 100%;
+  animation: scintille 1.6s linear infinite;
+}
+
+/* Changement d'onglet directionnel. */
+@keyframes entre-droite { from { opacity: 0; transform: translateX(26px); } }
+@keyframes entre-gauche { from { opacity: 0; transform: translateX(-26px); } }
+.anim-entre-droite { animation: entre-droite 240ms var(--ease-out) backwards; }
+.anim-entre-gauche { animation: entre-gauche 240ms var(--ease-out) backwards; }
+
+/* Division de l'addition : la nouvelle part se détache de la précédente. */
+@keyframes scinder {
+  from { opacity: 0; transform: scaleY(0.55) translateY(-16px); }
+}
+.anim-scinder { transform-origin: top; animation: scinder 260ms var(--ease-spring) backwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+  button:not(:disabled):active { transform: none; }
+}

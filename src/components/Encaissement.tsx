@@ -64,7 +64,7 @@ export default function Encaissement({ onRetour, onValide }: { onRetour: () => v
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-bg">
+    <div className="anim-feuille fixed inset-0 z-50 flex flex-col bg-bg">
       <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3.5">
         <div className="flex items-center gap-3">
           <button
@@ -110,7 +110,7 @@ export default function Encaissement({ onRetour, onValide }: { onRetour: () => v
                     >
                       −
                     </button>
-                    <span className="w-5 text-center font-mono text-sm tabular-nums">
+                    <span key={a.quantite} className="anim-pop inline-block w-5 text-center font-mono text-sm tabular-nums">
                       {a.quantite}
                     </span>
                     <button
@@ -134,7 +134,7 @@ export default function Encaissement({ onRetour, onValide }: { onRetour: () => v
           <span className="font-mono text-xs uppercase tracking-wider text-ink-faint">
             Total
           </span>
-          <span className="text-3xl font-semibold tabular-nums text-ink">
+          <span key={total} className="anim-pop-doux inline-block text-3xl font-semibold tabular-nums text-ink">
             {formaterEuros(total)}
           </span>
         </div>
@@ -150,7 +150,7 @@ export default function Encaissement({ onRetour, onValide }: { onRetour: () => v
             >
               −
             </button>
-            <span className="w-16 text-center font-mono text-base tabular-nums text-ink">
+            <span key={nbPersonnes} className="anim-pop-doux inline-block w-16 text-center font-mono text-base tabular-nums text-ink">
               {nbPersonnes} pers.
             </span>
             <button
@@ -166,7 +166,7 @@ export default function Encaissement({ onRetour, onValide }: { onRetour: () => v
           {lignes.map((l, i) => (
             <div
               key={l.id}
-              className="flex items-center justify-between gap-3 rounded-xl border border-line bg-surface px-3.5 py-3"
+              className="anim-deplier flex items-center justify-between gap-3 rounded-xl border border-line bg-surface px-3.5 py-3"
             >
               <span className="w-20 shrink-0 text-sm text-ink-soft">
                 Personne {i + 1}

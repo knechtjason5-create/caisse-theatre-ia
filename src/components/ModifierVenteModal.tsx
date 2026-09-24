@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCaisse, CATEGORIES } from "@/lib/store";
 import { formaterEuros, formaterDate, formaterHeure } from "@/lib/format";
+import MontantAnime from "./MontantAnime";
 import { LigneVente, ModePaiement, Paiement, Produit, Vente } from "@/lib/types";
 
 type LignePaiementEdit = { id: string; mode: ModePaiement; montant: number };
@@ -114,7 +115,7 @@ export default function ModifierVenteModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-bg">
+    <div className="anim-feuille fixed inset-0 z-50 flex flex-col bg-bg">
       <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3.5">
         <div className="flex flex-col">
           <h1 className="text-lg font-semibold text-ink">Modifier la vente</h1>
@@ -145,7 +146,7 @@ export default function ModifierVenteModal({
             {lignes.map((l) => (
               <div
                 key={l.produitId}
-                className="flex items-center justify-between gap-3 rounded-xl border border-line bg-surface px-3.5 py-2.5"
+                className="anim-deplier flex items-center justify-between gap-3 rounded-xl border border-line bg-surface px-3.5 py-2.5"
               >
                 <div className="flex flex-col">
                   <span className="text-sm font-medium text-ink">{l.nom}</span>
@@ -262,7 +263,7 @@ export default function ModifierVenteModal({
             Nouveau total
           </span>
           <span className="text-3xl font-semibold tabular-nums text-ink">
-            {formaterEuros(total)}
+            <MontantAnime valeur={total} />
           </span>
         </div>
 
@@ -277,7 +278,7 @@ export default function ModifierVenteModal({
           {paiements.map((p) => (
             <div
               key={p.id}
-              className="flex items-center justify-between gap-3 rounded-xl border border-line bg-surface px-3.5 py-3"
+              className="anim-deplier flex items-center justify-between gap-3 rounded-xl border border-line bg-surface px-3.5 py-3"
             >
               <div className="flex items-center gap-1 rounded-full bg-surface-2 p-1">
                 {(["Espèces", "CB"] as ModePaiement[]).map((m) => (

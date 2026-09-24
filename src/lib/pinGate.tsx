@@ -19,6 +19,7 @@ export function PinGateProvider({ children }: { children: ReactNode }) {
   const [demande, setDemande] = useState<Demande | null>(null);
   const [saisie, setSaisie] = useState("");
   const [erreur, setErreur] = useState(false);
+  const [echecs, setEchecs] = useState(0);
   const [verification, setVerification] = useState(false);
 
   const demanderCode = useCallback((action: string): Promise<boolean> => {
@@ -26,6 +27,7 @@ export function PinGateProvider({ children }: { children: ReactNode }) {
     return new Promise<boolean>((resoudre) => {
       setSaisie("");
       setErreur(false);
+      setEchecs(0);
       setDemande({ action, resoudre });
     });
   }, []);
@@ -41,6 +43,7 @@ export function PinGateProvider({ children }: { children: ReactNode }) {
       setDemande(null);
     } else {
       setErreur(true);
+      setEchecs((n) => n + 1);
     }
   };
 
@@ -55,8 +58,11 @@ export function PinGateProvider({ children }: { children: ReactNode }) {
       {children}
 
       {demande && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 px-6">
-          <div className="flex w-full max-w-xs flex-col gap-4 rounded-2xl border border-line bg-surface p-5">
+        <div className="anim-fondu fixed inset-0 z-[60] flex items-center justify-center bg-black/60 px-6">
+          <div
+            key={echecs}
+            className={`${echecs > 0 ? "anim-secouer" : "anim-apparaitre"} flex w-full max-w-xs flex-col gap-4 rounded-2xl border border-line bg-surface p-5`}
+          >
             <div className="flex flex-col gap-1">
               <span className="font-mono text-xs uppercase tracking-wider text-ink-faint">
                 Théâtre de l&rsquo;IA

@@ -40,7 +40,10 @@ export default function Header({ onOuvrirSoiree }: { onOuvrirSoiree: () => void 
       {soiree ? (
         <div className="flex items-center gap-2.5">
           <span className="flex items-center gap-1.5 text-sm text-ink">
-            <span className="h-1.5 w-1.5 rounded-full bg-ink" />
+            <span className="relative flex h-1.5 w-1.5">
+              <span aria-hidden className="anim-onde absolute inset-0 rounded-full bg-ink" />
+              <span className="relative h-1.5 w-1.5 rounded-full bg-ink" />
+            </span>
             {soiree.nom}
           </span>
           <button onClick={cloturer} className="text-xs text-ink-faint underline">
