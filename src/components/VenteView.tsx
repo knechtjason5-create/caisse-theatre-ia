@@ -8,6 +8,8 @@ import { formaterEuros } from "@/lib/format";
 import { vibrer } from "@/lib/haptique";
 import ChiffreRoulant from "./ChiffreRoulant";
 
+const DELAI_ANNULATION = 5000; // = animations « toast-annulable » et « decompte » de globals.css
+
 export default function VenteView({ onOuvrirSoiree }: { onOuvrirSoiree: () => void }) {
   const soiree = useCaisse((e) => e.soireeActive());
   const tousLesProduits = useCaisse((e) => e.produits);
@@ -20,12 +22,15 @@ export default function VenteView({ onOuvrirSoiree }: { onOuvrirSoiree: () => vo
     e.panier.reduce((n, a) => n + a.quantite, 0)
   );
 
+  const annulerVente = useCaisse((e) => e.annulerVente);
+
   const [encaissementOuvert, setEncaissementOuvert] = useState(false);
-  const [venteConfirmee, setVenteConfirmee] = useState(false);
+  /** Vente qui vient d'être validée : son bandeau propose de l'annuler pendant quelques secondes. */
+  const [venteConfirmee, setVenteConfirmee] = useState<string | null>(null);
 
   useEffect(() => {
     if (!venteConfirmee) return;
-    const t = setTimeout(() => setVenteConfirmee(false), 2200);
+    const t = setTimeout(() => setVenteConfirmee(null), DELAI_ANNULATION);
     return () => clearTimeout(t);
   }, [venteConfirmee]);
 
@@ -87,16 +92,22 @@ export default function VenteView({ onOuvrirSoiree }: { onOuvrirSoiree: () => vo
       {encaissementOuvert && (
         <Encaissement
           onRetour={() => setEncaissementOuvert(false)}
-          onValide={() => {
+          onValide={(venteId) => {
             setEncaissementOuvert(false);
-            setVenteConfirmee(true);
+            setVenteConfirmee(venteId);
             vibrer([12, 40, 12]);
           }}
         />
       )}
 
       {venteConfirmee && (
-        <div className="anim-toast fixed inset-x-4 bottom-20 z-40 flex items-center justify-center gap-2 rounded-full bg-ink px-5 py-3.5 text-sm font-medium text-bg shadow-lg">
+        <div
+          key={venteConfirmee}
+          role="status"
+          className={`anim-toast-annulable fixed inset-x-4 z-40 flex items-center gap-2 overflow-hidden rounded-full bg-ink py-2 pl-5 pr-2 text-sm font-medium text-bg shadow-lg ${
+            nbArticles > 0 ? "bottom-36" : "bottom-20"
+          }`}
+        >
           <svg
             className="h-4 w-4"
             viewBox="0 0 16 16"
@@ -109,7 +120,19 @@ export default function VenteView({ onOuvrirSoiree }: { onOuvrirSoiree: () => vo
           >
             <path className="anim-trace" pathLength={1} d="M3 8.5l3.2 3.2L13 4.8" />
           </svg>
-          Vente enregistrée
+          <span className="flex-1">Vente enregistrée</span>
+          <button
+            onClick={() => {
+              annulerVente(venteConfirmee);
+              setVenteConfirmee(null);
+              vibrer(20);
+            }}
+            className="rounded-full border border-bg/30 px-3.5 py-1.5 text-xs font-medium text-bg"
+          >
+            Annuler
+          </button>
+          {/* Le temps restant pour annuler s'égrène sous le bandeau. */}
+          <span aria-hidden className="anim-decompte absolute inset-x-0 bottom-0 h-0.5 bg-bg/40" />
         </div>
       )}
     </div>

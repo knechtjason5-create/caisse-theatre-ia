@@ -144,8 +144,13 @@ button:not(:disabled):active {
 .anim-onde { animation: onde 2.4s var(--ease-out) infinite; }
 .anim-respirer { animation: respirer 1.6s ease-in-out infinite alternate; }
 .anim-trace { stroke-dasharray: 1; stroke-dashoffset: 1; animation: trace 320ms var(--ease-out) 140ms forwards; }
-/* Bandeau de confirmation : monte, reste, puis s'efface (2,2 s au total, comme son minuteur). */
-.anim-toast { animation: monter 240ms var(--ease-out) backwards, sortir 240ms var(--ease-out) 1960ms forwards; }
+/* Bandeau « Vente enregistrée · Annuler » : monte, reste, puis s'efface (5 s au total, comme DELAI_ANNULATION dans VenteView). */
+.anim-toast-annulable { animation: monter 240ms var(--ease-out) backwards, sortir 240ms var(--ease-out) 4760ms forwards; }
+@keyframes decompte {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+.anim-decompte { transform-origin: left; animation: decompte 5000ms linear forwards; }
 
 .anim-pop { animation: pop 260ms var(--ease-spring); }
 .anim-pop-doux { animation: pop-doux 240ms var(--ease-out); }

@@ -25,6 +25,20 @@ export function estVenteLocale(venteId: string): boolean {
   return ventesLocales.has(venteId);
 }
 
+/** Écritures d'une vente en cours d'envoi : une suppression doit attendre leur fin, sinon elle arriverait avant l'insertion. */
+const insertionsEnCours = new Map<string, Promise<void>>();
+
+function supprimerVenteEnBase(venteId: string): void {
+  if (!supabase) return;
+  (insertionsEnCours.get(venteId) ?? Promise.resolve()).then(() =>
+    supabase!
+      .from("ventes")
+      .delete()
+      .eq("id", venteId)
+      .then(({ error }) => signalerErreur("Suppression non synchronisée", error))
+  );
+}
+
 /**
  * Affiche l'échec d'une écriture en base dans un bandeau de l'app (`AlerteSync`),
  * jamais via alert() que certains navigateurs embarqués bloquent.
@@ -94,8 +108,11 @@ type Etat = {
   viderPanier: () => void;
 
   // vente
-  validerVente: (paiements: Paiement[]) => void;
+  /** Renvoie l'identifiant de la vente créée (null si rien à vendre ou aucune soirée ouverte). */
+  validerVente: (paiements: Paiement[]) => string | null;
   supprimerVente: (venteId: string) => void;
+  /** Annule une vente qui vient d'être validée : elle est supprimée et ses boissons reviennent au panier. */
+  annulerVente: (venteId: string) => void;
   modifierVente: (venteId: string, lignes: LigneVente[], paiements: Paiement[]) => void;
   importerVentes: (nomSoiree: string, ventes: VenteImportee[]) => { nombreImportees: number; nombreIgnorees: number };
 
@@ -200,7 +217,7 @@ export const useCaisse = create<Etat>()((set, get) => ({
   validerVente: (paiements) => {
     const { panier, produits } = get();
     const soiree = get().soireeActive();
-    if (panier.length === 0 || !soiree) return;
+    if (panier.length === 0 || !soiree) return null;
 
     const lignes: LigneVente[] = panier.map((article) => {
       const produit = produits.find((p) => p.id === article.produitId)!;
@@ -231,7 +248,7 @@ export const useCaisse = create<Etat>()((set, get) => ({
     }));
 
     if (supabase) {
-      (async () => {
+      const insertion = (async () => {
         const { error: eVente } = await supabase!.from("ventes").insert({
           id: vente.id,
           soiree_id: vente.soireeId,
@@ -266,20 +283,35 @@ export const useCaisse = create<Etat>()((set, get) => ({
           if (ePaiements) signalerErreur("Paiement non synchronisé", ePaiements);
         }
       })();
+      insertionsEnCours.set(vente.id, insertion);
+      insertion.finally(() => insertionsEnCours.delete(vente.id));
     }
+    return vente.id;
   },
 
   supprimerVente: (venteId) => {
     set((etat) => ({
       ventes: etat.ventes.filter((v) => v.id !== venteId),
     }));
-    if (supabase) {
-      supabase
-        .from("ventes")
-        .delete()
-        .eq("id", venteId)
-        .then(({ error }) => signalerErreur("Suppression non synchronisée", error));
-    }
+    supprimerVenteEnBase(venteId);
+  },
+
+  annulerVente: (venteId) => {
+    const vente = get().ventes.find((v) => v.id === venteId);
+    if (!vente) return;
+    // Les boissons retournent dans le panier (en plus de ce qui a pu y être ajouté entre-temps).
+    set((etat) => {
+      let panier = etat.panier;
+      for (const l of vente.lignes) {
+        if (panier.some((a) => a.produitId === l.produitId)) {
+          panier = panier.map((a) => (a.produitId === l.produitId ? { ...a, quantite: a.quantite + l.quantite } : a));
+        } else if (etat.produits.some((p) => p.id === l.produitId)) {
+          panier = [...panier, { produitId: l.produitId, quantite: l.quantite }];
+        }
+      }
+      return { ventes: etat.ventes.filter((v) => v.id !== venteId), panier };
+    });
+    supprimerVenteEnBase(venteId);
   },
 
   modifierVente: (venteId, lignes, paiements) => {

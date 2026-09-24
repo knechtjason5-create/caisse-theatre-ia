@@ -6,6 +6,7 @@ import { formaterEuros } from "@/lib/format";
 import { ModePaiement } from "@/lib/types";
 import Glissable from "./Glissable";
 import SelecteurMode from "./SelecteurMode";
+import RenduMonnaie from "./RenduMonnaie";
 
 type LignePaiement = { id: string; mode: ModePaiement; montant: number };
 
@@ -16,7 +17,13 @@ function repartirEquitablement(totalEuros: number, nbPersonnes: number): number[
   return Array.from({ length: nbPersonnes }, (_, i) => (i < reste ? base + 1 : base) / 100);
 }
 
-export default function Encaissement({ onRetour, onValide }: { onRetour: () => void; onValide: () => void }) {
+export default function Encaissement({
+  onRetour,
+  onValide,
+}: {
+  onRetour: () => void;
+  onValide: (venteId: string) => void;
+}) {
   const panier = useCaisse((e) => e.panier);
   const produits = useCaisse((e) => e.produits);
   const total = useCaisse((e) => e.totalPanier());
@@ -67,10 +74,10 @@ export default function Encaissement({ onRetour, onValide }: { onRetour: () => v
 
   const confirmer = () => {
     if (!equilibre || panierVide) return;
-    validerVente(
+    const venteId = validerVente(
       lignes.map((l, i) => ({ id: `paiement-${i}-${Date.now()}`, mode: l.mode, montant: l.montant }))
     );
-    onValide();
+    if (venteId) onValide(venteId);
   };
 
   return (
@@ -179,23 +186,27 @@ export default function Encaissement({ onRetour, onValide }: { onRetour: () => v
           {lignes.map((l, i) => (
             <div
               key={l.id}
-              className={`${i === 0 ? "anim-deplier" : "anim-scinder"} flex items-center justify-between gap-3 rounded-xl border border-line bg-surface px-3.5 py-3`}
+              className={`${i === 0 ? "anim-deplier" : "anim-scinder"} flex flex-col gap-2.5 rounded-xl border border-line bg-surface px-3.5 py-3`}
             >
-              <span className="w-20 shrink-0 text-sm text-ink-soft">
-                Personne {i + 1}
-              </span>
+              <div className="flex items-center justify-between gap-3">
+                <span className="w-20 shrink-0 text-sm text-ink-soft">
+                  Personne {i + 1}
+                </span>
 
-              <SelecteurMode valeur={l.mode} onChange={(m) => modifierMode(l.id, m)} />
+                <SelecteurMode valeur={l.mode} onChange={(m) => modifierMode(l.id, m)} />
 
-              <div className="flex items-center gap-1">
-                <input
-                  inputMode="decimal"
-                  value={l.montant.toFixed(2)}
-                  onChange={(e) => modifierMontant(l.id, e.target.value)}
-                  className="w-16 rounded-md border border-line bg-bg px-2 py-1.5 text-right font-mono text-sm tabular-nums text-ink outline-none focus:border-ink"
-                />
-                <span className="font-mono text-sm text-ink-faint">€</span>
+                <div className="flex items-center gap-1">
+                  <input
+                    inputMode="decimal"
+                    value={l.montant.toFixed(2)}
+                    onChange={(e) => modifierMontant(l.id, e.target.value)}
+                    className="w-16 rounded-md border border-line bg-bg px-2 py-1.5 text-right font-mono text-sm tabular-nums text-ink outline-none focus:border-ink"
+                  />
+                  <span className="font-mono text-sm text-ink-faint">€</span>
+                </div>
               </div>
+
+              {l.mode === "Espèces" && <RenduMonnaie montant={l.montant} />}
             </div>
           ))}
         </div>

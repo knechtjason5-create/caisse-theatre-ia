@@ -63,6 +63,12 @@ Puis ouvrir [http://localhost:3000](http://localhost:3000).
   Toutes les animations sont en CSS dans `src/app/globals.css` (≤ 300 ms pour les
   interactions) et respectent « réduire les animations » du système. Les zones qui
   gèrent elles-mêmes le glissement sont marquées `data-no-swipe` / `data-glissable`.
+- Rendu de monnaie (`src/components/RenduMonnaie.tsx`) : à l'encaissement, chaque personne qui
+  paie en espèces peut toucher la somme tendue pour voir la monnaie à rendre, décomposée en billets
+  et pièces. Purement indicatif, rien n'est enregistré.
+- Annuler une vente : le bandeau « Vente enregistrée » propose « Annuler » pendant 5 s
+  (`annulerVente` dans `store.ts`) ; la vente est supprimée et ses boissons reviennent au panier.
+  La suppression en base attend la fin de l'insertion de la vente pour ne pas la devancer.
 - En-têtes de sécurité HTTP (CSP, anti-iframe…) définis dans `next.config.ts`.
 
 ## Déploiement
