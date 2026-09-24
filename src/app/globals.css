@@ -54,6 +54,14 @@ button {
   touch-action: manipulation;
 }
 
+/* Le zoom à deux doigts est autorisé : sur iPhone, un champ en dessous de 16px déclencherait
+   en plus un zoom automatique à chaque saisie, d'où cette taille minimale réservée à iOS. */
+@supports (-webkit-touch-callout: none) {
+  input, select, textarea {
+    font-size: max(16px, 1em);
+  }
+}
+
 /* keep the interface calm on a modest tablet: no smooth-scroll physics, no stray tap highlight */
 * {
   -webkit-tap-highlight-color: transparent;

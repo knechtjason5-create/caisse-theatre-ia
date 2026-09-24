@@ -48,7 +48,13 @@ Puis ouvrir [http://localhost:3000](http://localhost:3000).
 - Prix, quantités et montants négatifs sont refusés par l'interface et par la base.
 - Confirmations (clôture, suppression d'une vente ou d'une boisson) : fenêtre interne
   `src/lib/confirmation.tsx`, jamais `window.confirm()` — certains navigateurs embarqués
-  le bloquent et renvoient toujours « non ».
+  le bloquent et renvoient toujours « non ». De même, un échec d'écriture en base s'affiche dans un
+  bandeau de l'app (`src/components/AlerteSync.tsx`) et non via `alert()`.
+- Le zoom à deux doigts est autorisé (accessibilité) ; sur iPhone, les champs de saisie font au
+  moins 16 px pour éviter le zoom automatique à la saisie (`globals.css`).
+- Icônes d'installation (écran d'accueil) : `public/brand/icon-192.png`, `icon-512.png`,
+  `icon-maskable-512.png` (déclarées dans `public/manifest.webmanifest`), plus `src/app/icon.png`
+  et `src/app/apple-icon.png` (iPhone), générées à partir du masque de la charte.
 - Animations et gestes : rideau de scène après la saisie du code et à l'ouverture/clôture d'une soirée (récap
   animé à la clôture), bille qui vole vers le panier, maintien du « + » (ajouts accélérés), glisser
   vers la gauche pour retirer/supprimer, balayage entre onglets, paliers de recette
@@ -78,6 +84,6 @@ Chaque `git push` sur `main` redéploie automatiquement le site.
 - `src/lib/confirmation.tsx` — fenêtre de confirmation interne (`useConfirmer`)
 - `src/lib/vol.ts`, `src/lib/haptique.ts`, `src/lib/anim.ts` — bille vers le panier, vibrations, cascades
 - `src/components/` — écrans (Vente, Panier, Encaissement, Carte, Historique) et effets
-  (`Rideau`, `RecapSoiree`, `JalonRecette`, `NotifVenteDistante`, `Glissable`,
+  (`Rideau`, `RecapSoiree`, `JalonRecette`, `NotifVenteDistante`, `AlerteSync`, `Glissable`,
   `SelecteurMode`, `ChiffreRoulant`, `MontantAnime`)
 - `public/brand/` — logos de la charte graphique du Théâtre de l'IA

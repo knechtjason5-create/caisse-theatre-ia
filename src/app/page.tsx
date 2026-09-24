@@ -17,6 +17,7 @@ import OuvrirSoireeModal from "@/components/OuvrirSoireeModal";
 import Rideau from "@/components/Rideau";
 import RecapSoiree from "@/components/RecapSoiree";
 import JalonRecette from "@/components/JalonRecette";
+import AlerteSync from "@/components/AlerteSync";
 
 type EtatRideau = { mode: "ouvre" | "ferme"; titre: string } | null;
 
@@ -166,6 +167,7 @@ function Contenu() {
   return (
     <>
       {ecran()}
+      <AlerteSync />
       {rideau && (
         <Rideau
           key={rideau.mode}

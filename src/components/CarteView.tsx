@@ -32,7 +32,7 @@ export default function CarteView() {
   return (
     <div className="flex-1 overflow-y-auto px-4 pb-8 pt-4">
       <p className="mb-5 text-sm text-ink-soft">
-        Ajoutez, renommez, repositionnez ou retirez une boisson. Les prix
+        Ajoutez, renommez ou retirez une boisson. Les prix
         s&rsquo;appliquent aux ventes suivantes, pas aux ventes déjà enregistrées.
       </p>
 
@@ -161,7 +161,7 @@ export default function CarteView() {
       )}
 
       <p className="mt-6 text-center font-mono text-xs text-ink-faint">
-        {produits.length} boisson{produits.length > 1 ? "s" : ""} · total moyen{" "}
+        {produits.length} boisson{produits.length > 1 ? "s" : ""} · prix moyen{" "}
         {formaterEuros(
           produits.reduce((s, p) => s + p.prix, 0) / (produits.length || 1)
         )}

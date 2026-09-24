@@ -25,11 +25,13 @@ export function estVenteLocale(venteId: string): boolean {
   return ventesLocales.has(venteId);
 }
 
+/**
+ * Affiche l'échec d'une écriture en base dans un bandeau de l'app (`AlerteSync`),
+ * jamais via alert() que certains navigateurs embarqués bloquent.
+ */
 function signalerErreur(contexte: string, error: { message: string } | null): void {
   if (!error) return;
-  if (typeof window !== "undefined") {
-    alert(`${contexte} : ${error.message}\nVérifiez la connexion internet.`);
-  }
+  useCaisse.setState({ alerteSync: `${contexte} : ${error.message}` });
 }
 
 type LigneVenteRow = {
@@ -81,6 +83,8 @@ type Etat = {
   // synchronisation
   pret: boolean;
   erreur: string | null;
+  alerteSync: string | null;
+  fermerAlerteSync: () => void;
   chargerDonnees: () => Promise<void>;
 
   // panier
@@ -116,6 +120,8 @@ export const useCaisse = create<Etat>()((set, get) => ({
   panier: [],
   pret: false,
   erreur: null,
+  alerteSync: null,
+  fermerAlerteSync: () => set({ alerteSync: null }),
 
   chargerDonnees: async () => {
     if (!supabase) {
