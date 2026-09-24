@@ -10,8 +10,15 @@ import ChiffreRoulant from "./ChiffreRoulant";
 
 const DELAI_ANNULATION = 5000; // = animations « toast-annulable » et « decompte » de globals.css
 
-export default function VenteView({ onOuvrirSoiree }: { onOuvrirSoiree: () => void }) {
+export default function VenteView({
+  onOuvrirSoiree,
+  onRepetition,
+}: {
+  onOuvrirSoiree: () => void;
+  onRepetition: () => void;
+}) {
   const soiree = useCaisse((e) => e.soireeActive());
+  const repetition = useCaisse((e) => e.repetition);
   const tousLesProduits = useCaisse((e) => e.produits);
   const produits = useMemo(
     () => tousLesProduits.filter((p) => p.visible),
@@ -46,6 +53,11 @@ export default function VenteView({ onOuvrirSoiree }: { onOuvrirSoiree: () => vo
         >
           Ouvrir une soirée
         </button>
+        {!repetition && (
+          <button onClick={onRepetition} className="text-sm text-ink-faint underline">
+            ou s&rsquo;entraîner en mode répétition
+          </button>
+        )}
       </div>
     );
   }

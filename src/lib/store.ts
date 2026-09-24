@@ -1,5 +1,6 @@
 import { create } from "zustand";
-import { supabase } from "./supabase";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { supabase as clientSupabase } from "./supabase";
 import { PRODUITS_INITIAUX } from "./seed";
 import {
   ArticlePanier,
@@ -18,6 +19,15 @@ function genererId(): string {
     : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+/**
+ * Client utilisé par le store. En mode répétition il vaut null : ni lecture ni écriture en base,
+ * tout reste en mémoire. Chaque écriture le capture à son démarrage (`const sb = supabase`).
+ */
+let supabase: SupabaseClient | null = clientSupabase;
+
+/** Panier réel mis de côté pendant une répétition, rendu à la fin. */
+let panierHorsRepetition: ArticlePanier[] = [];
+
 /** Ventes créées sur cet appareil : permet de reconnaître celles qui arrivent d'un autre appareil. */
 const ventesLocales = new Set<string>();
 
@@ -29,9 +39,10 @@ export function estVenteLocale(venteId: string): boolean {
 const insertionsEnCours = new Map<string, Promise<void>>();
 
 function supprimerVenteEnBase(venteId: string): void {
-  if (!supabase) return;
+  const sb = supabase;
+  if (!sb) return;
   (insertionsEnCours.get(venteId) ?? Promise.resolve()).then(() =>
-    supabase!
+    sb
       .from("ventes")
       .delete()
       .eq("id", venteId)
@@ -101,6 +112,11 @@ type Etat = {
   fermerAlerteSync: () => void;
   chargerDonnees: () => Promise<void>;
 
+  // répétition : caisse d'entraînement, rien n'est enregistré
+  repetition: boolean;
+  commencerRepetition: () => void;
+  terminerRepetition: () => void;
+
   // panier
   ajouterAuPanier: (produitId: string, delta: number) => void;
   quantiteDansPanier: (produitId: string) => number;
@@ -140,7 +156,34 @@ export const useCaisse = create<Etat>()((set, get) => ({
   alerteSync: null,
   fermerAlerteSync: () => set({ alerteSync: null }),
 
+  repetition: false,
+
+  commencerRepetition: () => {
+    if (get().repetition) return;
+    supabase = null;
+    panierHorsRepetition = get().panier;
+    // La carte réelle sert de base ; la soirée et ses ventes sont fictives.
+    set({
+      repetition: true,
+      soirees: [{ id: `repetition-${genererId()}`, nom: "Répétition", ouverteLe: Date.now(), cloturéeLe: null }],
+      ventes: [],
+      panier: [],
+      alerteSync: null,
+    });
+  },
+
+  terminerRepetition: () => {
+    if (!get().repetition) return;
+    supabase = clientSupabase;
+    set({ repetition: false, panier: panierHorsRepetition });
+    panierHorsRepetition = [];
+    // Retour aux vraies données, y compris ce que les autres appareils ont fait entre-temps.
+    get().chargerDonnees();
+  },
+
   chargerDonnees: async () => {
+    // Pendant une répétition, la synchronisation temps réel n'écrase pas la caisse d'entraînement.
+    if (get().repetition) return;
     if (!supabase) {
       set({
         pret: true,
@@ -174,8 +217,11 @@ export const useCaisse = create<Etat>()((set, get) => ({
       }));
       const ventes: Vente[] = (ventesRes.data ?? []).map((v) => venteDepuisRow(v as VenteRow));
 
+      // Une répétition a pu commencer pendant le chargement : ne pas écraser la caisse d'entraînement.
+      if (get().repetition) return;
       set({ produits, soirees, ventes, pret: true, erreur: null });
     } catch (err) {
+      if (get().repetition) return;
       set({
         pret: true,
         erreur: err instanceof Error ? err.message : "Erreur de connexion à la base en ligne.",
@@ -247,9 +293,10 @@ export const useCaisse = create<Etat>()((set, get) => ({
       panier: [],
     }));
 
-    if (supabase) {
+    const sb = supabase;
+    if (sb) {
       const insertion = (async () => {
-        const { error: eVente } = await supabase!.from("ventes").insert({
+        const { error: eVente } = await sb.from("ventes").insert({
           id: vente.id,
           soiree_id: vente.soireeId,
           horodatage: vente.horodatage,
@@ -258,7 +305,7 @@ export const useCaisse = create<Etat>()((set, get) => ({
         if (eVente) return signalerErreur("Vente non synchronisée", eVente);
 
         if (vente.lignes.length > 0) {
-          const { error: eLignes } = await supabase!.from("lignes_vente").insert(
+          const { error: eLignes } = await sb.from("lignes_vente").insert(
             vente.lignes.map((l) => ({
               id: genererId(),
               vente_id: vente.id,
@@ -272,7 +319,7 @@ export const useCaisse = create<Etat>()((set, get) => ({
         }
 
         if (vente.paiements.length > 0) {
-          const { error: ePaiements } = await supabase!.from("paiements").insert(
+          const { error: ePaiements } = await sb.from("paiements").insert(
             vente.paiements.map((p) => ({
               id: p.id,
               vente_id: vente.id,
@@ -323,23 +370,24 @@ export const useCaisse = create<Etat>()((set, get) => ({
       ),
     }));
 
-    if (supabase) {
+    const sb = supabase;
+    if (sb) {
       (async () => {
         try {
-          const { error: eVente } = await supabase!
+          const { error: eVente } = await sb
             .from("ventes")
             .update({ montant_total: montantTotal, modifiee_le: modifieeLe })
             .eq("id", venteId);
           if (eVente) throw eVente;
 
-          const { error: eDelLignes } = await supabase!
+          const { error: eDelLignes } = await sb
             .from("lignes_vente")
             .delete()
             .eq("vente_id", venteId);
           if (eDelLignes) throw eDelLignes;
 
           if (lignes.length > 0) {
-            const { error: eLignes } = await supabase!.from("lignes_vente").insert(
+            const { error: eLignes } = await sb.from("lignes_vente").insert(
               lignes.map((l) => ({
                 id: genererId(),
                 vente_id: venteId,
@@ -352,14 +400,14 @@ export const useCaisse = create<Etat>()((set, get) => ({
             if (eLignes) throw eLignes;
           }
 
-          const { error: eDelPaiements } = await supabase!
+          const { error: eDelPaiements } = await sb
             .from("paiements")
             .delete()
             .eq("vente_id", venteId);
           if (eDelPaiements) throw eDelPaiements;
 
           if (paiements.length > 0) {
-            const { error: ePaiements } = await supabase!.from("paiements").insert(
+            const { error: ePaiements } = await sb.from("paiements").insert(
               paiements.map((p) => ({
                 id: p.id,
                 vente_id: venteId,
@@ -422,11 +470,12 @@ export const useCaisse = create<Etat>()((set, get) => ({
       ventes: [...etat.ventes, ...nouvellesVentes],
     }));
 
-    if (supabase) {
+    const sb = supabase;
+    if (sb) {
       (async () => {
         try {
           if (soireeEstNouvelle) {
-            const { error } = await supabase!.from("soirees").insert({
+            const { error } = await sb.from("soirees").insert({
               id: soiree!.id,
               nom: soiree!.nom,
               ouverte_le: soiree!.ouverteLe,
@@ -435,7 +484,7 @@ export const useCaisse = create<Etat>()((set, get) => ({
             if (error) throw error;
           }
           for (const v of nouvellesVentes) {
-            const { error: eVente } = await supabase!.from("ventes").insert({
+            const { error: eVente } = await sb.from("ventes").insert({
               id: v.id,
               soiree_id: v.soireeId,
               horodatage: v.horodatage,
@@ -445,7 +494,7 @@ export const useCaisse = create<Etat>()((set, get) => ({
             if (eVente) throw eVente;
 
             if (v.lignes.length > 0) {
-              const { error: eLignes } = await supabase!.from("lignes_vente").insert(
+              const { error: eLignes } = await sb.from("lignes_vente").insert(
                 v.lignes.map((l) => ({
                   id: genererId(),
                   vente_id: v.id,
@@ -459,7 +508,7 @@ export const useCaisse = create<Etat>()((set, get) => ({
             }
 
             if (v.paiements.length > 0) {
-              const { error: ePaiements } = await supabase!.from("paiements").insert(
+              const { error: ePaiements } = await sb.from("paiements").insert(
                 v.paiements.map((p) => ({
                   id: p.id,
                   vente_id: v.id,
@@ -495,8 +544,9 @@ export const useCaisse = create<Etat>()((set, get) => ({
     set((etat) => ({
       soirees: [...etat.soirees, soiree],
     }));
-    if (supabase) {
-      supabase
+    const sb = supabase;
+    if (sb) {
+      sb
         .from("soirees")
         .insert({ id: soiree.id, nom: soiree.nom, ouverte_le: soiree.ouverteLe, cloturee_le: null })
         .then(({ error }) => signalerErreur("Ouverture de soirée non synchronisée", error));
@@ -510,8 +560,9 @@ export const useCaisse = create<Etat>()((set, get) => ({
     set((etat) => ({
       soirees: etat.soirees.map((s) => (s.id === soiree.id ? { ...s, cloturéeLe } : s)),
     }));
-    if (supabase) {
-      supabase
+    const sb = supabase;
+    if (sb) {
+      sb
         .from("soirees")
         .update({ cloturee_le: cloturéeLe })
         .eq("id", soiree.id)
@@ -528,8 +579,9 @@ export const useCaisse = create<Etat>()((set, get) => ({
     set((etat) => ({
       produits: [...etat.produits, { ...produit, id }],
     }));
-    if (supabase) {
-      supabase
+    const sb = supabase;
+    if (sb) {
+      sb
         .from("produits")
         .insert({ id, nom: produit.nom, categorie: produit.categorie, prix: produit.prix, visible: produit.visible })
         .then(({ error }) => signalerErreur("Produit non synchronisé", error));
@@ -543,10 +595,11 @@ export const useCaisse = create<Etat>()((set, get) => ({
   },
 
   synchroniserProduit: (produitId) => {
-    if (!supabase) return;
+    const sb = supabase;
+    if (!sb) return;
     const produit = get().produits.find((p) => p.id === produitId);
     if (!produit) return;
-    supabase
+    sb
       .from("produits")
       .update({ nom: produit.nom, categorie: produit.categorie, prix: produit.prix, visible: produit.visible })
       .eq("id", produitId)
@@ -557,8 +610,9 @@ export const useCaisse = create<Etat>()((set, get) => ({
     set((etat) => ({
       produits: etat.produits.filter((p) => p.id !== produitId),
     }));
-    if (supabase) {
-      supabase
+    const sb = supabase;
+    if (sb) {
+      sb
         .from("produits")
         .delete()
         .eq("id", produitId)

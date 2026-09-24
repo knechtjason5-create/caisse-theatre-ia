@@ -18,6 +18,7 @@ import Rideau from "@/components/Rideau";
 import RecapSoiree from "@/components/RecapSoiree";
 import JalonRecette from "@/components/JalonRecette";
 import AlerteSync from "@/components/AlerteSync";
+import BandeauRepetition from "@/components/BandeauRepetition";
 
 type EtatRideau = { mode: "ouvre" | "ferme"; titre: string } | null;
 
@@ -111,6 +112,9 @@ function Contenu() {
   const [recap, setRecap] = useState<Soiree | null>(null);
   const soiree = useCaisse((e) => e.soireeActive());
   const cloturerSoiree = useCaisse((e) => e.cloturerSoiree);
+  const repetition = useCaisse((e) => e.repetition);
+  const commencerRepetition = useCaisse((e) => e.commencerRepetition);
+  const terminerRepetition = useCaisse((e) => e.terminerRepetition);
   const confirmer = useConfirmer();
   const toucher = useRef<{ x: number; y: number } | null>(null);
 
@@ -139,6 +143,34 @@ function Contenu() {
     // Le récap s'affiche sur le rideau baissé, une fois le rideau tombé.
     const cloturee = soiree;
     setTimeout(() => setRecap(cloturee), 1000);
+  };
+
+  /** Entrer en répétition (caisse d'entraînement) ou en sortir ; le rideau marque le changement de plateau. */
+  const basculerRepetition = async () => {
+    const ok = await confirmer(
+      repetition
+        ? {
+            titre: "Terminer la répétition ?",
+            message: "Les ventes d'entraînement sont effacées et la vraie caisse reprend.",
+            libelle: "Terminer",
+          }
+        : {
+            titre: "Passer en répétition ?",
+            message:
+              "Pour s'entraîner ou former quelqu'un : tout fonctionne comme d'habitude, mais rien n'est enregistré et les autres appareils ne voient rien.",
+            libelle: "Commencer",
+          }
+    );
+    if (!ok) return;
+    setModalOuverte(false);
+    setRecap(null);
+    if (repetition) {
+      terminerRepetition();
+      setRideau({ mode: "ouvre", titre: "Théâtre de l’IA" });
+    } else {
+      commencerRepetition();
+      setRideau({ mode: "ouvre", titre: "Répétition" });
+    }
   };
 
   const entrer = useCallback(() => {
@@ -205,7 +237,12 @@ function Contenu() {
 
     return (
       <div className="flex flex-1 flex-col">
-        <Header onOuvrirSoiree={() => setModalOuverte(true)} onCloturer={cloturer} />
+        {repetition && <BandeauRepetition onTerminer={basculerRepetition} />}
+        <Header
+          onOuvrirSoiree={() => setModalOuverte(true)}
+          onCloturer={cloturer}
+          onRepetition={basculerRepetition}
+        />
 
         <main
           key={onglet}
@@ -231,7 +268,7 @@ function Contenu() {
           }}
         >
           {onglet === "vente" && (
-            <VenteView onOuvrirSoiree={() => setModalOuverte(true)} />
+            <VenteView onOuvrirSoiree={() => setModalOuverte(true)} onRepetition={basculerRepetition} />
           )}
           {onglet === "carte" && <CarteView />}
           {onglet === "historique" && <HistoriqueView />}
@@ -257,7 +294,7 @@ function Contenu() {
             onFermer={() => {
               setRecap(null);
               // Le rideau se relève sur l'application.
-              setRideau({ mode: "ouvre", titre: "Théâtre de l’IA" });
+              setRideau({ mode: "ouvre", titre: repetition ? "Répétition" : "Théâtre de l’IA" });
             }}
           />
         )}

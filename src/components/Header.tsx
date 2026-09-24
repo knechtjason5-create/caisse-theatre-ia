@@ -7,11 +7,15 @@ import NotifVenteDistante, { useVenteDistante } from "./NotifVenteDistante";
 export default function Header({
   onOuvrirSoiree,
   onCloturer,
+  onRepetition,
 }: {
   onOuvrirSoiree: () => void;
   onCloturer: () => void;
+  /** Toucher le masque : entrer en répétition, ou en sortir. */
+  onRepetition: () => void;
 }) {
   const soiree = useCaisse((e) => e.soireeActive());
+  const repetition = useCaisse((e) => e.repetition);
   const venteDistante = useVenteDistante();
 
   return (
@@ -22,7 +26,11 @@ export default function Header({
           venteDistante ? "anim-pulse-entete" : ""
         }`}
       >
-        <div className="flex items-center gap-2.5">
+        <button
+          onClick={onRepetition}
+          aria-label={repetition ? "Terminer la répétition" : "Passer en mode répétition"}
+          className="flex items-center gap-2.5 text-left"
+        >
           <Image
             src="/brand/mask-black.png"
             alt=""
@@ -42,7 +50,7 @@ export default function Header({
             <br />
             de l&rsquo;IA
           </span>
-        </div>
+        </button>
 
         {soiree ? (
           <div className="flex items-center gap-2.5">

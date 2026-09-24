@@ -315,6 +315,15 @@ body::before {
 /* Sélecteur Espèces / CB : la pastille glisse sous l'option choisie. */
 .pastille-glissante { transition: transform 200ms var(--ease-out); }
 
+/* Mode répétition : bandeau noir et or, bordé d'un ruban rayé comme un marquage de plateau. */
+.bande-repetition {
+  background: #1c1a17;
+  color: #d9b56a;
+  border-bottom: 5px solid transparent;
+  border-image: repeating-linear-gradient(-45deg, #b8923f 0 8px, #1c1a17 8px 16px) 5;
+}
+.bande-repetition button { border-color: rgba(217, 181, 106, 0.5); color: #d9b56a; }
+
 /* Glisser pour supprimer : fond révélé derrière la ligne. */
 .glissable-fond { background: var(--danger); color: var(--bg); }
 

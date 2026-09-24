@@ -69,6 +69,12 @@ Puis ouvrir [http://localhost:3000](http://localhost:3000).
 - Annuler une vente : le bandeau « Vente enregistrée » propose « Annuler » pendant 5 s
   (`annulerVente` dans `store.ts`) ; la vente est supprimée et ses boissons reviennent au panier.
   La suppression en base attend la fin de l'insertion de la vente pour ne pas la devancer.
+- Mode répétition (entraînement) : toucher le masque de l'en-tête (ou le lien sous « Ouvrir une
+  soirée »). Un bandeau noir et or reste affiché ; la caisse fonctionne normalement sur une soirée
+  fictive, mais le store n'a plus de client Supabase (`supabase = null` dans `store.ts`) : aucune
+  lecture ni écriture en base, la synchronisation temps réel est ignorée. « Terminer » efface tout,
+  rend le panier réel et recharge les vraies données (`BandeauRepetition.tsx`,
+  `commencerRepetition` / `terminerRepetition`).
 - En-têtes de sécurité HTTP (CSP, anti-iframe…) définis dans `next.config.ts`.
 
 ## Déploiement
