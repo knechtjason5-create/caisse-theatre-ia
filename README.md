@@ -75,6 +75,14 @@ Puis ouvrir [http://localhost:3000](http://localhost:3000).
   lecture ni écriture en base, la synchronisation temps réel est ignorée. « Terminer » efface tout,
   rend le panier réel et recharge les vraies données (`BandeauRepetition.tsx`,
   `commencerRepetition` / `terminerRepetition`).
+- Les trois coups : au démarrage d'une soirée, le rideau reste fermé le temps de trois coups de
+  brigadier (son synthétisé par Web Audio dans `src/lib/son.ts`, aucun fichier audio ; vibration
+  sur Android), puis s'ouvre (`Rideau` en mode `coups`). Le son part du geste « Démarrer la
+  soirée », condition pour que l'iPhone l'autorise.
+- Programme de la soirée (`src/lib/programme.ts`) : à la clôture, « Partager le programme »
+  produit une affiche PNG 1080×1350 façon programme de théâtre (recette, distribution des boissons,
+  paiements, heure du rideau), dessinée dans un canvas. Partage natif du téléphone s'il est
+  disponible, téléchargement sinon.
 - En-têtes de sécurité HTTP (CSP, anti-iframe…) définis dans `next.config.ts`.
 
 ## Déploiement

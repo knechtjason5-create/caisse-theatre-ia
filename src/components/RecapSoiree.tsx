@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { dessinerProgramme, partagerProgramme } from "@/lib/programme";
 import { useCaisse } from "@/lib/store";
 import { formaterEuros } from "@/lib/format";
 import { telechargerCsvSoiree } from "@/lib/export";
@@ -45,6 +46,18 @@ export default function RecapSoiree({ soiree, onFermer }: { soiree: Soiree; onFe
 
     return { recette, especes, cb, classement, pic: pic ? Number(pic[0]) : null };
   }, [ventes]);
+
+  // Le programme est dessiné d'avance : le partage doit partir directement du geste de l'utilisateur (iPhone).
+  const [programme, setProgramme] = useState<Blob | null>(null);
+  useEffect(() => {
+    let annule = false;
+    dessinerProgramme({ soiree, nombreVentes: ventes.length, ...stats })
+      .then((image) => !annule && setProgramme(image))
+      .catch(() => {});
+    return () => {
+      annule = true;
+    };
+  }, [soiree, ventes.length, stats]);
 
   const fermer = () => {
     setSortie(true);
@@ -122,6 +135,16 @@ export default function RecapSoiree({ soiree, onFermer }: { soiree: Soiree; onFe
         )}
 
         <div className="flex flex-col gap-2">
+          {ventes.length > 0 && (
+            <button
+              onClick={() => programme && partagerProgramme(programme, soiree)}
+              disabled={!programme}
+              className="w-full rounded-full border px-4 py-2.5 text-sm font-medium text-ink disabled:opacity-40"
+              style={{ borderColor: OR }}
+            >
+              Partager le programme de la soirée
+            </button>
+          )}
           {ventes.length > 0 && (
             <button
               onClick={() => telechargerCsvSoiree(soiree, ventes, produits)}

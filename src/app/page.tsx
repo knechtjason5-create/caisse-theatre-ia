@@ -14,13 +14,14 @@ import VenteView from "@/components/VenteView";
 import CarteView from "@/components/CarteView";
 import HistoriqueView from "@/components/HistoriqueView";
 import OuvrirSoireeModal from "@/components/OuvrirSoireeModal";
-import Rideau from "@/components/Rideau";
+import Rideau, { ModeRideau } from "@/components/Rideau";
+import { lesTroisCoups } from "@/lib/son";
 import RecapSoiree from "@/components/RecapSoiree";
 import JalonRecette from "@/components/JalonRecette";
 import AlerteSync from "@/components/AlerteSync";
 import BandeauRepetition from "@/components/BandeauRepetition";
 
-type EtatRideau = { mode: "ouvre" | "ferme"; titre: string } | null;
+type EtatRideau = { mode: ModeRideau; titre: string } | null;
 
 /** Un glissement de doigt ne change d'onglet que s'il part d'une zone qui ne gère pas elle-même le geste. */
 const ZONES_SANS_BALAYAGE = "[data-no-swipe], [data-glissable], input, textarea, select";
@@ -206,7 +207,7 @@ function Contenu() {
           mode={rideau.mode}
           titre={rideau.titre}
           onFin={() => {
-            if (rideau.mode === "ouvre") setRideau(null);
+            if (rideau.mode !== "ferme") setRideau(null);
           }}
         />
       )}
@@ -282,7 +283,9 @@ function Contenu() {
           <OuvrirSoireeModal
             onOuverte={(nom) => {
               setModalOuverte(false);
-              setRideau({ mode: "ouvre", titre: nom });
+              // Appelé dans le geste « Démarrer la soirée » : condition pour que l'iPhone joue le son.
+              lesTroisCoups();
+              setRideau({ mode: "coups", titre: nom });
             }}
             onAnnuler={() => setModalOuverte(false)}
           />

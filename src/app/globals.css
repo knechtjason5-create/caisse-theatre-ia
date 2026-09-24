@@ -229,6 +229,23 @@ body::before {
 [data-rideau="ouvre"] .rideau-embleme { animation: fondu-sortie 300ms var(--ease-out) 150ms both; }
 [data-rideau="ferme"] .rideau-embleme { animation: fondu 400ms var(--ease-out) 650ms backwards; }
 
+/* Les trois coups (ouverture d'une soirée) : rideau fermé, trois coups à 350, 800 et 1250 ms
+   (même rythme que COUPS dans Rideau.tsx), puis il s'ouvre. */
+@keyframes coup {
+  0%, 21%, 29%, 53%, 61%, 85%, 93%, 100% { transform: scale(1); }
+  25%, 57%, 89% { transform: scale(1.12); }
+}
+@keyframes coup-point { from { background: rgba(217, 181, 106, 0.2); } to { background: #d9b56a; box-shadow: 0 0 10px #d9b56a; } }
+[data-rideau="coups"] .rideau-gauche { animation: rideau-ouvre-g 1100ms cubic-bezier(0.7, 0, 0.25, 1) 1700ms both; }
+[data-rideau="coups"] .rideau-droite { animation: rideau-ouvre-d 1100ms cubic-bezier(0.7, 0, 0.25, 1) 1700ms both; }
+[data-rideau="coups"] .rideau-embleme { animation: fondu-sortie 300ms var(--ease-out) 1600ms both; }
+[data-rideau="coups"] .rideau-masque { animation: coup 1400ms linear both; }
+.rideau-point { width: 7px; height: 7px; border-radius: 9999px; background: rgba(217, 181, 106, 0.2); }
+[data-rideau="coups"] .rideau-point { animation: coup-point 120ms ease-out both; }
+[data-rideau="coups"] .rideau-point:nth-child(1) { animation-delay: 350ms; }
+[data-rideau="coups"] .rideau-point:nth-child(2) { animation-delay: 800ms; }
+[data-rideau="coups"] .rideau-point:nth-child(3) { animation-delay: 1250ms; }
+
 /* Récap de soirée. */
 @keyframes barre { from { transform: scaleX(0); } }
 @keyframes anneau { from { stroke-dasharray: 0 264; } }
