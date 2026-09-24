@@ -103,7 +103,10 @@ Chaque `git push` sur `main` redéploie automatiquement le site.
 - `src/lib/pinGate.tsx` — code à 4 chiffres demandé à l'entrée du site
 - `src/lib/confirmation.tsx` — fenêtre de confirmation interne (`useConfirmer`)
 - `src/lib/vol.ts`, `src/lib/haptique.ts`, `src/lib/anim.ts` — bille vers le panier, vibrations, cascades
+- `src/lib/son.ts` — les trois coups (son synthétisé Web Audio + vibration)
+- `src/lib/programme.ts` — affiche « programme de la soirée » (canvas → PNG) et partage
 - `src/components/` — écrans (Vente, Panier, Encaissement, Carte, Historique) et effets
-  (`Rideau`, `RecapSoiree`, `JalonRecette`, `NotifVenteDistante`, `AlerteSync`, `Glissable`,
-  `SelecteurMode`, `ChiffreRoulant`, `MontantAnime`)
-- `public/brand/` — logos de la charte graphique du Théâtre de l'IA
+  (`Rideau`, `RecapSoiree`, `JalonRecette`, `NotifVenteDistante`, `AlerteSync`, `RenduMonnaie`,
+  `BandeauRepetition`, `Glissable`, `SelecteurMode`, `ChiffreRoulant`, `MontantAnime`)
+- `src/app/icon.png`, `src/app/apple-icon.png` — icônes d'onglet et d'écran d'accueil iPhone
+- `public/brand/` — logos de la charte graphique du Théâtre de l'IA et icônes d'installation
