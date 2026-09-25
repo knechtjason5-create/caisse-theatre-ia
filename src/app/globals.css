@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Thème : `data-salle` est posé sur <html> avant l'affichage (script de layout.tsx, lib/theme.ts).
+   « noire » = la Salle noire, thème sombre noir et or pour le comptoir. */
+@custom-variant dark (&:where([data-salle=noire], [data-salle=noire] *));
+
 :root {
   --bg: #f6f4ef;
   --surface: #fffefb;
@@ -9,19 +13,29 @@
   --ink-faint: #8a8578;
   --line: #ddd8c9;
   --danger: #8a3324;
+  --succes: #3f7a4a;
+  /* Or de la charte (rideau, récap, pastilles du guide). */
+  --or: #b8923f;
+  /* Élément choisi (tuile avec des boissons, barre d'encaissement) et son texte. */
+  --choix: #1c1a17;
+  --sur-choix: #f6f4ef;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #151412;
-    --surface: #1e1c19;
-    --surface-2: #26241f;
-    --ink: #f1eee6;
-    --ink-soft: #b8b3a6;
-    --ink-faint: #7d7869;
-    --line: #38352d;
-    --danger: #d97a63;
-  }
+/* Salle noire : fond presque noir, tuiles choisies en or, comme les lettres de la carte sur fond sombre. */
+:root[data-salle="noire"] {
+  --bg: #100f0d;
+  --surface: #1a1815;
+  --surface-2: #25221d;
+  --ink: #f1eee6;
+  --ink-soft: #b8b3a6;
+  --ink-faint: #857f70;
+  --line: #34302a;
+  --danger: #e08a72;
+  --succes: #7fbf8a;
+  --or: #d9b56a;
+  --choix: #d9b56a;
+  --sur-choix: #16140f;
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -33,6 +47,10 @@
   --color-ink-faint: var(--ink-faint);
   --color-line: var(--line);
   --color-danger: var(--danger);
+  --color-succes: var(--succes);
+  --color-or: var(--or);
+  --color-choix: var(--choix);
+  --color-sur-choix: var(--sur-choix);
   --font-display: var(--font-display);
   --font-body: var(--font-body);
   --font-mono: var(--font-mono);
@@ -167,11 +185,9 @@ button:not(:disabled):active {
   --lueur-1: rgba(190, 150, 70, 0.1);
   --lueur-2: rgba(140, 40, 55, 0.07);
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --lueur-1: rgba(217, 160, 90, 0.06);
-    --lueur-2: rgba(200, 80, 90, 0.06);
-  }
+:root[data-salle="noire"] {
+  --lueur-1: rgba(217, 181, 106, 0.07);
+  --lueur-2: rgba(140, 40, 55, 0.08);
 }
 
 /* Fond : deux lueurs très lentes, derrière tout le contenu. Uniquement transform → aucun repaint. */
@@ -206,6 +222,17 @@ body::before {
     rgba(0, 0, 0, 0.18) 36px 54px
   );
   box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+}
+/* Même velours, dans le bouton « Maintenir pour clôturer ». */
+.bouton-rideau {
+  background-color: #4a1218;
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.32) 0 9px,
+    rgba(255, 255, 255, 0.06) 9px 18px,
+    rgba(0, 0, 0, 0.18) 18px 27px
+  );
+  border-bottom: 2px solid #b8923f;
 }
 .rideau-gauche { left: 0; border-right: 2px solid #b8923f; }
 .rideau-droite { right: 0; border-left: 2px solid #b8923f; }
@@ -286,6 +313,8 @@ body::before {
 @keyframes battement { from { opacity: 0.35; } to { opacity: 1; } }
 .anim-remplir { stroke-dasharray: 107; animation: remplir 380ms linear forwards; }
 .anim-battement { animation: battement 380ms ease-in-out infinite alternate; }
+/* Maintien d'une tuile : la barre sous la tuile se remplit (même durée que DELAI_MAINTIEN de ProductTile). */
+.anim-remplir-barre { transform-origin: left; animation: barre 380ms linear both; }
 
 /* Squelette de chargement. */
 @keyframes scintille {

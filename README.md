@@ -45,8 +45,33 @@ Puis ouvrir [http://localhost:3000](http://localhost:3000).
   `update app_config set valeur = '….' where cle = 'code_acces';` dans l'éditeur
   SQL Supabase (puis `delete from appareils_autorises;` pour forcer tous les
   appareils à ressaisir le nouveau code).
-- Prix, quantités et montants négatifs sont refusés par l'interface et par la base.
-- Confirmations (clôture, suppression d'une vente ou d'une boisson) : fenêtre interne
+- Prix, quantités et montants négatifs sont refusés par l'interface et par la base. Tous les
+  montants saisis passent par `src/components/ChampMontant.tsx` : virgule française (« 8,75 »),
+  point accepté, et message sous le champ en cas de saisie refusée (négatif, illisible).
+- Écran de vente : toucher n'importe où sur une tuile ajoute un verre, la maintenir en ajoute
+  plusieurs ; le « − » n'apparaît qu'une fois la boisson dans le panier. Le panier reste visible
+  en pastilles au-dessus de la barre (`PanierPuces.tsx` : toucher = −1, maintenir = retirer la ligne).
+  La barre du bas encaisse en un geste (« Espèces » / « CB », une personne paie tout) ; toucher le
+  total ouvre l'encaissement détaillé (addition partagée, monnaie). « Dernières commandes »
+  (`Tournees.tsx`) rejoue les 3 derniers paniers de la soirée ; ★ épingle une commande pour la
+  soirée sur cet appareil (localStorage).
+- Pictos au trait de la carte imprimée (chope, verres, cocktail) et traits « circuit » :
+  `src/components/Picto.tsx`.
+- Pastille de soirée (en-tête) : point de connexion (vert synchronisé, or envoi en cours, rouge hors
+  ligne ou écriture échouée — `src/lib/etatSoiree.ts`, écritures comptées par `suivre()` dans
+  `store.ts`), recette en direct et initiales des collègues connectés (présence Supabase Realtime
+  sur le canal `caisse-sync`, prénom facultatif par appareil : `src/lib/appareil.ts`). La toucher
+  ouvre le menu de la soirée (`MenuSoiree.tsx`) : chiffres, connexion, prénom, thème, répétition,
+  visite guidée et clôture. La clôture se fait en **maintenant** le bouton 1,5 s
+  (`BoutonMaintenir.tsx`, un rideau descend dans le bouton), sans fenêtre de confirmation.
+- Thème « Salle noire » (sombre noir et or) : Auto (le soir de 19 h à 7 h, ou si l'appareil est en
+  sombre), Clair ou Salle noire, au choix dans le menu, mémorisé par appareil. Appliqué avant
+  l'affichage par un script de `<head>` (`src/lib/themeScript.ts`), puis par `src/lib/theme.ts` ;
+  l'attribut `data-salle` de `<html>` pilote les couleurs et la variante `dark:` de Tailwind.
+- Visite guidée (`VisiteGuidee.tsx`) : proposée en entrant en répétition, ou depuis le menu (elle
+  passe alors en répétition). Cinq repères numérotés en or, comme dans le guide PDF, puis un
+  exercice d'encaissement vérifié par l'app. Les cibles sont marquées `data-visite="…"`.
+- Confirmations (suppression d'une vente ou d'une boisson, répétition) : fenêtre interne
   `src/lib/confirmation.tsx`, jamais `window.confirm()` — certains navigateurs embarqués
   le bloquent et renvoient toujours « non ». De même, un échec d'écriture en base s'affiche dans un
   bandeau de l'app (`src/components/AlerteSync.tsx`) et non via `alert()`.
@@ -56,7 +81,7 @@ Puis ouvrir [http://localhost:3000](http://localhost:3000).
   `icon-maskable-512.png` (déclarées dans `public/manifest.webmanifest`), plus `src/app/icon.png`
   et `src/app/apple-icon.png` (iPhone), générées à partir du masque de la charte.
 - Animations et gestes : rideau de scène après la saisie du code et à l'ouverture/clôture d'une soirée (récap
-  animé à la clôture), bille qui vole vers le panier, maintien du « + » (ajouts accélérés), glisser
+  animé à la clôture), bille qui vole vers le panier, maintien d'une tuile (ajouts accélérés), glisser
   vers la gauche pour retirer/supprimer, balayage entre onglets, paliers de recette
   (100/250/500 €), note quand une vente arrive d'un autre appareil, verrou du code à
   pastilles (validation au 4ᵉ chiffre), squelette de chargement, vibrations Android.
@@ -69,8 +94,8 @@ Puis ouvrir [http://localhost:3000](http://localhost:3000).
 - Annuler une vente : le bandeau « Vente enregistrée » propose « Annuler » pendant 5 s
   (`annulerVente` dans `store.ts`) ; la vente est supprimée et ses boissons reviennent au panier.
   La suppression en base attend la fin de l'insertion de la vente pour ne pas la devancer.
-- Mode répétition (entraînement) : toucher le masque de l'en-tête (ou le lien sous « Ouvrir une
-  soirée »). Un bandeau noir et or reste affiché ; la caisse fonctionne normalement sur une soirée
+- Mode répétition (entraînement) : toucher le masque de l'en-tête, le bouton « Répétition » du menu
+  de la soirée, ou le lien sous « Ouvrir une soirée ». Un bandeau noir et or reste affiché ; la caisse fonctionne normalement sur une soirée
   fictive, mais le store n'a plus de client Supabase (`supabase = null` dans `store.ts`) : aucune
   lecture ni écriture en base, la synchronisation temps réel est ignorée. « Terminer » efface tout,
   rend le panier réel et recharge les vraies données (`BandeauRepetition.tsx`,
@@ -105,8 +130,12 @@ Chaque `git push` sur `main` redéploie automatiquement le site.
 - `src/lib/vol.ts`, `src/lib/haptique.ts`, `src/lib/anim.ts` — bille vers le panier, vibrations, cascades
 - `src/lib/son.ts` — les trois coups (son synthétisé Web Audio + vibration)
 - `src/lib/programme.ts` — affiche « programme de la soirée » (canvas → PNG) et partage
-- `src/components/` — écrans (Vente, Panier, Encaissement, Carte, Historique) et effets
+- `src/lib/theme.ts`, `src/lib/themeScript.ts` — thème Clair / Salle noire / Auto
+- `src/lib/etatSoiree.ts` — état de connexion de la pastille et chiffres de la soirée
+- `src/lib/appareil.ts` — identifiant et prénom facultatif de l'appareil (présence)
+- `src/components/` — écrans (Vente, Encaissement, Carte, Historique, `MenuSoiree`) et effets
   (`Rideau`, `RecapSoiree`, `JalonRecette`, `NotifVenteDistante`, `AlerteSync`, `RenduMonnaie`,
-  `BandeauRepetition`, `Glissable`, `SelecteurMode`, `ChiffreRoulant`, `MontantAnime`)
+  `BandeauRepetition`, `Glissable`, `SelecteurMode`, `ChiffreRoulant`, `MontantAnime`,
+  `PanierPuces`, `Tournees`, `Picto`, `ChampMontant`, `BoutonMaintenir`, `VisiteGuidee`)
 - `src/app/icon.png`, `src/app/apple-icon.png` — icônes d'onglet et d'écran d'accueil iPhone
 - `public/brand/` — logos de la charte graphique du Théâtre de l'IA et icônes d'installation

@@ -2,8 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { useCaisse } from "@/lib/store";
-import { formaterEuros } from "@/lib/format";
+import { formaterEuros, pluriel } from "@/lib/format";
 import { ModePaiement } from "@/lib/types";
+import ChampMontant from "./ChampMontant";
 import Glissable from "./Glissable";
 import SelecteurMode from "./SelecteurMode";
 import RenduMonnaie from "./RenduMonnaie";
@@ -22,7 +23,8 @@ export default function Encaissement({
   onValide,
 }: {
   onRetour: () => void;
-  onValide: (venteId: string) => void;
+  /** `texte` résume la vente pour le bandeau de confirmation (« 17,50 € en espèces »). */
+  onValide: (venteId: string, texte: string) => void;
 }) {
   const panier = useCaisse((e) => e.panier);
   const produits = useCaisse((e) => e.produits);
@@ -55,9 +57,8 @@ export default function Encaissement({
     setLignes(montants.map((m, i) => ({ id: `p${i}`, mode: "Espèces", montant: m })));
   };
 
-  const modifierMontant = (id: string, valeur: string) => {
-    const n = Number(valeur.replace(",", "."));
-    setLignes((ls) => ls.map((l) => (l.id === id ? { ...l, montant: Number.isFinite(n) ? Math.max(0, n) : 0 } : l)));
+  const modifierMontant = (id: string, montant: number) => {
+    setLignes((ls) => ls.map((l) => (l.id === id ? { ...l, montant } : l)));
   };
 
   const modifierMode = (id: string, mode: ModePaiement) => {
@@ -77,7 +78,13 @@ export default function Encaissement({
     const venteId = validerVente(
       lignes.map((l, i) => ({ id: `paiement-${i}-${Date.now()}`, mode: l.mode, montant: l.montant }))
     );
-    if (venteId) onValide(venteId);
+    if (!venteId) return;
+    const modes = new Set(lignes.map((l) => l.mode));
+    const texte =
+      lignes.length > 1
+        ? `${formaterEuros(total)} · ${pluriel(lignes.length, "personne")}`
+        : `${formaterEuros(total)} ${modes.has("CB") ? "par carte" : "en espèces"}`;
+    onValide(venteId, texte);
   };
 
   return (
@@ -166,15 +173,18 @@ export default function Encaissement({
           <div className="flex items-center gap-2">
             <button
               onClick={() => appliquerNbPersonnes(nbPersonnes - 1)}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-2 text-lg text-ink"
+              disabled={nbPersonnes === 1}
+              aria-label="Une personne de moins"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-2 text-lg text-ink disabled:opacity-30"
             >
               −
             </button>
-            <span key={nbPersonnes} className="anim-pop-doux inline-block w-20 whitespace-nowrap text-center font-mono text-base tabular-nums text-ink">
-              {nbPersonnes} pers.
+            <span key={nbPersonnes} className="anim-pop-doux inline-block w-24 whitespace-nowrap text-center text-base tabular-nums text-ink">
+              {pluriel(nbPersonnes, "personne")}
             </span>
             <button
               onClick={() => appliquerNbPersonnes(nbPersonnes + 1)}
+              aria-label="Une personne de plus"
               className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-2 text-lg text-ink"
             >
               +
@@ -189,21 +199,18 @@ export default function Encaissement({
               className={`${i === 0 ? "anim-deplier" : "anim-scinder"} flex flex-col gap-2.5 rounded-xl border border-line bg-surface px-3.5 py-3`}
             >
               <div className="flex items-center justify-between gap-3">
-                <span className="w-20 shrink-0 text-sm text-ink-soft">
+                <span className="min-w-0 text-sm leading-tight text-ink-soft">
                   Personne {i + 1}
                 </span>
 
                 <SelecteurMode valeur={l.mode} onChange={(m) => modifierMode(l.id, m)} />
 
-                <div className="flex items-center gap-1">
-                  <input
-                    inputMode="decimal"
-                    value={l.montant.toFixed(2)}
-                    onChange={(e) => modifierMontant(l.id, e.target.value)}
-                    className="w-16 rounded-md border border-line bg-bg px-2 py-1.5 text-right font-mono text-sm tabular-nums text-ink outline-none focus:border-ink"
-                  />
-                  <span className="font-mono text-sm text-ink-faint">€</span>
-                </div>
+                <ChampMontant
+                  label={`Montant payé par la personne ${i + 1}`}
+                  valeur={l.montant}
+                  onChange={(m) => modifierMontant(l.id, m)}
+                  className="w-[4.5rem]"
+                />
               </div>
 
               {l.mode === "Espèces" && <RenduMonnaie montant={l.montant} />}

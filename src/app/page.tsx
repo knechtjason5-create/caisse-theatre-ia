@@ -20,6 +20,9 @@ import RecapSoiree from "@/components/RecapSoiree";
 import JalonRecette from "@/components/JalonRecette";
 import AlerteSync from "@/components/AlerteSync";
 import BandeauRepetition from "@/components/BandeauRepetition";
+import MenuSoiree from "@/components/MenuSoiree";
+import VisiteGuidee from "@/components/VisiteGuidee";
+import { useAppliquerTheme } from "@/lib/theme";
 
 type EtatRideau = { mode: ModeRideau; titre: string } | null;
 
@@ -111,6 +114,9 @@ function Contenu() {
   const [modalOuverte, setModalOuverte] = useState(false);
   const [rideau, setRideau] = useState<EtatRideau>(null);
   const [recap, setRecap] = useState<Soiree | null>(null);
+  const [menuOuvert, setMenuOuvert] = useState(false);
+  const [visite, setVisite] = useState<"proposer" | "lancer" | null>(null);
+  useAppliquerTheme();
   const soiree = useCaisse((e) => e.soireeActive());
   const cloturerSoiree = useCaisse((e) => e.cloturerSoiree);
   const repetition = useCaisse((e) => e.repetition);
@@ -130,14 +136,10 @@ function Contenu() {
     [onglet]
   );
 
-  const cloturer = async () => {
+  /** Appelé au bout du maintien du bouton « Maintenir pour clôturer » : le geste tient lieu de confirmation. */
+  const cloturer = () => {
     if (!soiree) return;
-    const ok = await confirmer({
-      titre: `Clôturer « ${soiree.nom} » ?`,
-      message: "Le panier en cours sera perdu s'il n'est pas encaissé.",
-      libelle: "Clôturer",
-    });
-    if (!ok) return;
+    setMenuOuvert(false);
     cloturerSoiree();
     setRecap(null);
     setRideau({ mode: "ferme", titre: soiree.nom });
@@ -163,14 +165,37 @@ function Contenu() {
           }
     );
     if (!ok) return;
-    setModalOuverte(false);
-    setRecap(null);
     if (repetition) {
+      setModalOuverte(false);
+      setMenuOuvert(false);
+      setRecap(null);
+      setVisite(null);
       terminerRepetition();
       setRideau({ mode: "ouvre", titre: "Théâtre de l’IA" });
     } else {
-      commencerRepetition();
-      setRideau({ mode: "ouvre", titre: "Répétition" });
+      entrerEnRepetition("proposer");
+    }
+  };
+
+  /** Passe en répétition (rideau), puis propose la visite guidée, ou la lance directement. */
+  const entrerEnRepetition = (visiteEnSuite: "proposer" | "lancer") => {
+    setModalOuverte(false);
+    setMenuOuvert(false);
+    setRecap(null);
+    commencerRepetition();
+    changerOnglet("vente");
+    setRideau({ mode: "ouvre", titre: "Répétition" });
+    // La bulle attend que le rideau soit ouvert.
+    setTimeout(() => setVisite(visiteEnSuite), 1500);
+  };
+
+  const lancerVisite = () => {
+    setMenuOuvert(false);
+    if (repetition) {
+      changerOnglet("vente");
+      setVisite("lancer");
+    } else {
+      entrerEnRepetition("lancer");
     }
   };
 
@@ -239,11 +264,7 @@ function Contenu() {
     return (
       <div className="flex flex-1 flex-col">
         {repetition && <BandeauRepetition onTerminer={basculerRepetition} />}
-        <Header
-          onOuvrirSoiree={() => setModalOuverte(true)}
-          onCloturer={cloturer}
-          onRepetition={basculerRepetition}
-        />
+        <Header onMenu={() => setMenuOuvert(true)} onRepetition={basculerRepetition} />
 
         <main
           key={onglet}
@@ -278,6 +299,26 @@ function Contenu() {
         <Nav actif={onglet} onChange={changerOnglet} />
 
         <JalonRecette />
+
+        {menuOuvert && (
+          <MenuSoiree
+            onFermer={() => setMenuOuvert(false)}
+            onOuvrirSoiree={() => {
+              setMenuOuvert(false);
+              setModalOuverte(true);
+            }}
+            onCloturer={cloturer}
+            onRepetition={() => {
+              setMenuOuvert(false);
+              basculerRepetition();
+            }}
+            onVisite={lancerVisite}
+          />
+        )}
+
+        {visite && repetition && onglet === "vente" && (
+          <VisiteGuidee key={visite} proposer={visite === "proposer"} onFin={() => setVisite(null)} />
+        )}
 
         {modalOuverte && (
           <OuvrirSoireeModal

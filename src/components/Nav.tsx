@@ -16,7 +16,7 @@ export default function Nav({
   onChange: (o: Onglet) => void;
 }) {
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)]">
+    <nav data-visite="onglets" className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)]">
       <div className="relative flex">
         {ONGLETS.map((o) => (
           <button

@@ -42,11 +42,9 @@ function supprimerVenteEnBase(venteId: string): void {
   const sb = supabase;
   if (!sb) return;
   (insertionsEnCours.get(venteId) ?? Promise.resolve()).then(() =>
-    sb
-      .from("ventes")
-      .delete()
-      .eq("id", venteId)
-      .then(({ error }) => signalerErreur("Suppression non synchronisée", error))
+    suivre(sb.from("ventes").delete().eq("id", venteId)).then(({ error }) =>
+      signalerErreur("Suppression non synchronisée", error)
+    )
   );
 }
 
@@ -56,8 +54,22 @@ function supprimerVenteEnBase(venteId: string): void {
  */
 function signalerErreur(contexte: string, error: { message: string } | null): void {
   if (!error) return;
-  useCaisse.setState({ alerteSync: `${contexte} : ${error.message}` });
+  useCaisse.setState({ alerteSync: `${contexte} : ${error.message}`, echecSync: true });
 }
+
+/**
+ * Compte une écriture en base pendant qu'elle part : la pastille de l'en-tête passe à l'or
+ * (« envoi en cours ») tant qu'il en reste une.
+ */
+function suivre<T>(travail: PromiseLike<T>): Promise<T> {
+  useCaisse.setState((e) => ({ ecrituresEnCours: e.ecrituresEnCours + 1 }));
+  return Promise.resolve(travail).finally(() =>
+    useCaisse.setState((e) => ({ ecrituresEnCours: Math.max(0, e.ecrituresEnCours - 1) }))
+  );
+}
+
+/** Un appareil connecté à la caisse en ce moment (présence temps réel). */
+export type Present = { appareil: string; prenom: string };
 
 type LigneVenteRow = {
   id: string;
@@ -112,6 +124,17 @@ type Etat = {
   fermerAlerteSync: () => void;
   chargerDonnees: () => Promise<void>;
 
+  // état de la connexion, montré par la pastille de l'en-tête
+  /** Écritures parties vers la base et pas encore revenues. */
+  ecrituresEnCours: number;
+  /** Une écriture a échoué depuis le dernier chargement réussi. */
+  echecSync: boolean;
+  /** navigator.onLine et canal temps réel ouvert (renseignés par useSupabaseSync). */
+  enLigne: boolean;
+  canalOk: boolean;
+  /** Appareils connectés à la caisse, celui-ci compris. */
+  presents: Present[];
+
   // répétition : caisse d'entraînement, rien n'est enregistré
   repetition: boolean;
   commencerRepetition: () => void;
@@ -119,6 +142,8 @@ type Etat = {
 
   // panier
   ajouterAuPanier: (produitId: string, delta: number) => void;
+  /** Ajoute une commande entière (tournée rejouée) ; les boissons retirées de la carte ou masquées sont ignorées. */
+  ajouterArticles: (articles: ArticlePanier[]) => void;
   quantiteDansPanier: (produitId: string) => number;
   totalPanier: () => number;
   viderPanier: () => void;
@@ -155,6 +180,12 @@ export const useCaisse = create<Etat>()((set, get) => ({
   erreur: null,
   alerteSync: null,
   fermerAlerteSync: () => set({ alerteSync: null }),
+
+  ecrituresEnCours: 0,
+  echecSync: false,
+  enLigne: true,
+  canalOk: false,
+  presents: [],
 
   repetition: false,
 
@@ -219,7 +250,8 @@ export const useCaisse = create<Etat>()((set, get) => ({
 
       // Une répétition a pu commencer pendant le chargement : ne pas écraser la caisse d'entraînement.
       if (get().repetition) return;
-      set({ produits, soirees, ventes, pret: true, erreur: null });
+      // Données relues avec succès : la base fait foi, un ancien échec d'écriture n'est plus d'actualité.
+      set({ produits, soirees, ventes, pret: true, erreur: null, echecSync: false });
     } catch (err) {
       if (get().repetition) return;
       set({
@@ -243,6 +275,19 @@ export const useCaisse = create<Etat>()((set, get) => ({
       return {
         panier: [...panierSansCeProduit, { produitId, quantite: nouvelleQuantite }],
       };
+    });
+  },
+
+  ajouterArticles: (articles) => {
+    set((etat) => {
+      let panier = etat.panier;
+      for (const a of articles) {
+        if (!etat.produits.some((p) => p.id === a.produitId && p.visible) || a.quantite <= 0) continue;
+        panier = panier.some((x) => x.produitId === a.produitId)
+          ? panier.map((x) => (x.produitId === a.produitId ? { ...x, quantite: x.quantite + a.quantite } : x))
+          : [...panier, { produitId: a.produitId, quantite: a.quantite }];
+      }
+      return { panier };
     });
   },
 
@@ -295,7 +340,7 @@ export const useCaisse = create<Etat>()((set, get) => ({
 
     const sb = supabase;
     if (sb) {
-      const insertion = (async () => {
+      const insertion = suivre((async () => {
         const { error: eVente } = await sb.from("ventes").insert({
           id: vente.id,
           soiree_id: vente.soireeId,
@@ -329,7 +374,7 @@ export const useCaisse = create<Etat>()((set, get) => ({
           );
           if (ePaiements) signalerErreur("Paiement non synchronisé", ePaiements);
         }
-      })();
+      })());
       insertionsEnCours.set(vente.id, insertion);
       insertion.finally(() => insertionsEnCours.delete(vente.id));
     }
@@ -372,7 +417,7 @@ export const useCaisse = create<Etat>()((set, get) => ({
 
     const sb = supabase;
     if (sb) {
-      (async () => {
+      suivre((async () => {
         try {
           const { error: eVente } = await sb
             .from("ventes")
@@ -423,7 +468,7 @@ export const useCaisse = create<Etat>()((set, get) => ({
             err instanceof Error ? { message: err.message } : { message: String(err) }
           );
         }
-      })();
+      })());
     }
   },
 
@@ -472,7 +517,7 @@ export const useCaisse = create<Etat>()((set, get) => ({
 
     const sb = supabase;
     if (sb) {
-      (async () => {
+      suivre((async () => {
         try {
           if (soireeEstNouvelle) {
             const { error } = await sb.from("soirees").insert({
@@ -525,7 +570,7 @@ export const useCaisse = create<Etat>()((set, get) => ({
             err instanceof Error ? { message: err.message } : { message: String(err) }
           );
         }
-      })();
+      })());
     }
 
     return {
@@ -546,10 +591,9 @@ export const useCaisse = create<Etat>()((set, get) => ({
     }));
     const sb = supabase;
     if (sb) {
-      sb
-        .from("soirees")
-        .insert({ id: soiree.id, nom: soiree.nom, ouverte_le: soiree.ouverteLe, cloturee_le: null })
-        .then(({ error }) => signalerErreur("Ouverture de soirée non synchronisée", error));
+      suivre(
+        sb.from("soirees").insert({ id: soiree.id, nom: soiree.nom, ouverte_le: soiree.ouverteLe, cloturee_le: null })
+      ).then(({ error }) => signalerErreur("Ouverture de soirée non synchronisée", error));
     }
   },
 
@@ -562,11 +606,9 @@ export const useCaisse = create<Etat>()((set, get) => ({
     }));
     const sb = supabase;
     if (sb) {
-      sb
-        .from("soirees")
-        .update({ cloturee_le: cloturéeLe })
-        .eq("id", soiree.id)
-        .then(({ error }) => signalerErreur("Clôture non synchronisée", error));
+      suivre(sb.from("soirees").update({ cloturee_le: cloturéeLe }).eq("id", soiree.id)).then(({ error }) =>
+        signalerErreur("Clôture non synchronisée", error)
+      );
     }
   },
 
@@ -581,10 +623,11 @@ export const useCaisse = create<Etat>()((set, get) => ({
     }));
     const sb = supabase;
     if (sb) {
-      sb
-        .from("produits")
-        .insert({ id, nom: produit.nom, categorie: produit.categorie, prix: produit.prix, visible: produit.visible })
-        .then(({ error }) => signalerErreur("Produit non synchronisé", error));
+      suivre(
+        sb
+          .from("produits")
+          .insert({ id, nom: produit.nom, categorie: produit.categorie, prix: produit.prix, visible: produit.visible })
+      ).then(({ error }) => signalerErreur("Produit non synchronisé", error));
     }
   },
 
@@ -599,11 +642,12 @@ export const useCaisse = create<Etat>()((set, get) => ({
     if (!sb) return;
     const produit = get().produits.find((p) => p.id === produitId);
     if (!produit) return;
-    sb
-      .from("produits")
-      .update({ nom: produit.nom, categorie: produit.categorie, prix: produit.prix, visible: produit.visible })
-      .eq("id", produitId)
-      .then(({ error }) => signalerErreur(`« ${produit.nom} » non synchronisé`, error));
+    suivre(
+      sb
+        .from("produits")
+        .update({ nom: produit.nom, categorie: produit.categorie, prix: produit.prix, visible: produit.visible })
+        .eq("id", produitId)
+    ).then(({ error }) => signalerErreur(`« ${produit.nom} » non synchronisé`, error));
   },
 
   supprimerProduit: (produitId) => {
@@ -612,11 +656,9 @@ export const useCaisse = create<Etat>()((set, get) => ({
     }));
     const sb = supabase;
     if (sb) {
-      sb
-        .from("produits")
-        .delete()
-        .eq("id", produitId)
-        .then(({ error }) => signalerErreur("Suppression du produit non synchronisée", error));
+      suivre(sb.from("produits").delete().eq("id", produitId)).then(({ error }) =>
+        signalerErreur("Suppression du produit non synchronisée", error)
+      );
     }
   },
 }));

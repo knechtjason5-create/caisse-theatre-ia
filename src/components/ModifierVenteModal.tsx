@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useCaisse, CATEGORIES } from "@/lib/store";
 import { formaterEuros, formaterDate, formaterHeure } from "@/lib/format";
 import MontantAnime from "./MontantAnime";
+import ChampMontant from "./ChampMontant";
 import Glissable from "./Glissable";
 import SelecteurMode from "./SelecteurMode";
 import { LigneVente, ModePaiement, Paiement, Produit, Vente } from "@/lib/types";
@@ -86,11 +87,8 @@ export default function ModifierVenteModal({
     setLignes((ls) => ls.filter((l) => l.produitId !== produitId));
   };
 
-  const modifierMontantPaiement = (id: string, valeur: string) => {
-    const n = Number(valeur.replace(",", "."));
-    setPaiements((ps) =>
-      ps.map((p) => (p.id === id ? { ...p, montant: Number.isFinite(n) ? Math.max(0, n) : 0 } : p))
-    );
+  const modifierMontantPaiement = (id: string, montant: number) => {
+    setPaiements((ps) => ps.map((p) => (p.id === id ? { ...p, montant } : p)));
   };
 
   const modifierModePaiement = (id: string, mode: ModePaiement) => {
@@ -284,15 +282,12 @@ export default function ModifierVenteModal({
               <SelecteurMode valeur={p.mode} onChange={(m) => modifierModePaiement(p.id, m)} />
 
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1">
-                  <input
-                    inputMode="decimal"
-                    value={p.montant.toFixed(2)}
-                    onChange={(e) => modifierMontantPaiement(p.id, e.target.value)}
-                    className="w-16 rounded-md border border-line bg-bg px-2 py-1.5 text-right font-mono text-sm tabular-nums text-ink outline-none focus:border-ink"
-                  />
-                  <span className="font-mono text-sm text-ink-faint">€</span>
-                </div>
+                <ChampMontant
+                  label="Montant de ce paiement"
+                  valeur={p.montant}
+                  onChange={(m) => modifierMontantPaiement(p.id, m)}
+                  className="w-[4.5rem]"
+                />
                 {paiements.length > 1 && (
                   <button
                     onClick={() => supprimerLignePaiement(p.id)}

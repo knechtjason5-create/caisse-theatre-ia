@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Source_Sans_3, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
+import { SCRIPT_THEME } from "@/lib/themeScript";
 
 const fraunces = Fraunces({
   variable: "--font-display",
@@ -39,8 +40,13 @@ export default function RootLayout({
   return (
     <html
       lang="fr"
+      // data-salle est posé par SCRIPT_THEME avant l'hydratation : il diffère forcément du rendu serveur.
+      suppressHydrationWarning
       className={`${fraunces.variable} ${sourceSans.variable} ${plexMono.variable} h-full`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_THEME }} />
+      </head>
       <body className="min-h-full flex flex-col overscroll-none">{children}</body>
     </html>
   );
